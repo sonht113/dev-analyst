@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "lib": ["ES2022", "DOM"],
+    "allowJs": true,
+    "checkJs": true
+  },
+  "include": [
+    "*.config.ts",
+    "scripts/**/*.mjs",
+    "tests/active/**/*.ts",
+    "tests/e2e/bridge.spec.ts",
+    "packages/core/**/*.test.ts",
+    "packages/vite-plugin/**/*.test.ts",
+    "packages/inspector/**/*.test.ts",
+    "packages/analyzer/**/*.test.ts",
+    "packages/ai/**/*.test.ts",
+    "packages/cache/**/*.test.ts",
+    "packages/cli/**/*.test.ts"
+  ]
+}

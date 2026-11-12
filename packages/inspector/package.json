@@ -1,0 +1,44 @@
+{
+  "name": "@devanalyst/inspector",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DevAnalyst inspector package",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "src/**/*.ts",
+    "!src/**/*.test.ts"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/bridge-runtime.d.ts",
+      "import": "./dist/bridge-runtime.js",
+      "default": "./dist/bridge-runtime.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch --preserveWatchOutput",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@devanalyst/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

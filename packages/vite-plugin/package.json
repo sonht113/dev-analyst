@@ -1,0 +1,48 @@
+{
+  "name": "@devanalyst/vite-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DevAnalyst vite-plugin package",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "src/**/*.ts",
+    "!src/**/*.test.ts"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch --preserveWatchOutput",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@devanalyst/core": "workspace:*",
+    "@devanalyst/inspector": "workspace:*",
+    "ws": "8.22.2",
+    "picomatch": "4.0.7"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "@types/ws": "^8.18.0",
+    "@types/picomatch": "^4.0.0"
+  },
+  "peerDependencies": {
+    "vite": "^8.3.5"
+  }
+}

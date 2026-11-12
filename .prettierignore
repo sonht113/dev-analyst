@@ -1,0 +1,20 @@
+pnpm-lock.yaml
+node_modules/
+dist/
+.next/
+.nuxt/
+.output/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+next-env.d.ts
+
+# Preserved historical artifacts are outside active formatting targets.
+apps/playground-next/
+apps/playground-vue/
+apps/playground-nuxt/
+packages/next-plugin/
+packages/vue-plugin/
+tests/unit/
+tests/e2e/playgrounds.spec.ts

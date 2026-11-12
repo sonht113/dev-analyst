@@ -1,0 +1,14 @@
+packages:
+  - packages/core
+  - packages/vite-plugin
+  - packages/inspector
+  - packages/analyzer
+  - packages/ai
+  - packages/cache
+  - packages/cli
+  - apps/playground-react
+
+minimumReleaseAge: 1440
+strictDepBuilds: true
+onlyBuiltDependencies:
+  - esbuild

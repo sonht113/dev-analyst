@@ -1,0 +1,21 @@
+{
+  "name": "playground-nuxt",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --host 127.0.0.1 --port 3001",
+    "build": "nuxt build",
+    "typecheck": "nuxt prepare && nuxt typecheck",
+    "start": "node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "nuxt": "4.6.4",
+    "vue": "^3.5.0",
+    "vue-router": "^4.6.0"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vue-tsc": "3.3.11"
+  }
+}
