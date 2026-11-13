@@ -1,6 +1,6 @@
-# CI follow-up — native file-watcher synchronization
+# CI follow-up — watcher synchronization and dynamic frames
 
-The owner reported both pushed Phase 03–06 commits failing CI. This follow-up fixes test fixture synchronization; it does not change production Vite behavior, mapping policy, permissions, the workflow matrix, retries or test exclusions.
+The owner reported both pushed Phase 03–06 commits failing CI. Commit aa76d23 fixes test fixture synchronization without changing production Vite behavior, mapping policy, permissions, the workflow matrix, retries or exclusions. Its next hosted run exposed an additional runtime race in dynamic iframe listener attachment, addressed in the subsequent fix below.
 
 ## Hosted failure evidence
 
@@ -45,3 +45,13 @@ Local environment: Darwin arm64, Node 22.23.2, pinned pnpm 10.33.0/Vite 8.3.5 an
 - Targeted real bridge integration passed. A sandbox invocation initially hit loopback `EPERM`; the authorized outside-sandbox invocation passed.
 - `pnpm check` passed: lint/boundaries/formatting, strict typecheck, **245 unit/integration tests**, production build and all package checks.
 - `pnpm test:e2e` passed all **26 Chromium E2E tests**, including the native-watcher fixture. The new commit's hosted Node 22/24 outcome is visible in its Actions run; local results alone do not assert hosted success.
+
+## Dynamic iframe follow-up
+
+[Run 43361696098](https://github.com/sonht113/dev-analyst/actions/runs/43361696098) for `aa76d23` confirms the watcher fixes: the Node 24 job passed every step, while Node 22 passed all earlier checks and the mapping case but failed first selection of `Frame button` in a dynamically inserted iframe.
+
+The runtime deferred root/frame discovery by 200 ms. A same-origin frame could complete loading and receive its first inspection click before delegated listeners were attached. That click was lost; discovering the document later could not replay it. A deterministic browser regression inserts an about:blank frame and immediately dispatches an Alt inspection click from its load handler; it failed **3/3 repetitions** with the previous runtime. This supplements the existing real Playwright-click/frame-geometry test.
+
+The inspector now captures iframe load events in each observed parent document and runs the existing bounded discovery immediately, before the target's load handler can inspect its child. It does not cancel load, patch application code or scan on hover; document cleanup removes this listener with the existing delegates. Cross-origin/closed-root boundaries and discovery caps remain unchanged.
+
+After rebuilding the runtime, the deterministic first-click regression and existing nested-frame/Shadow DOM case passed **20/20 executions** (ten repetitions of each), without retries. The full local `pnpm check` passed again (245 unit/integration tests, lint, typecheck, build and package checks), followed by all **27 Chromium E2E tests**. The next hosted matrix must independently validate both Node versions before CI recovery is reported.

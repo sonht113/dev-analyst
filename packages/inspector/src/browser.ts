@@ -508,6 +508,11 @@ export function startElementInspector(
       listen(doc, 'click', click as EventListener),
       listen(doc, 'contextmenu', context as EventListener),
       listen(doc, 'keydown', key as EventListener),
+      // A frame can finish loading before debounced subtree discovery runs.
+      // Capture load in its parent document so the first child interaction is observed.
+      listen(doc, 'load', (event) => {
+        if (target(event)?.localName === 'iframe') discover();
+      }),
       listen(doc, 'scroll', schedule),
       listen(doc.defaultView ?? doc, 'resize', schedule),
       listen(doc, 'pointerleave', (() => {

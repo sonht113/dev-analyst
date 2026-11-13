@@ -314,6 +314,41 @@ test('handles same-origin nested frames, accessible shadow content and opaque bo
   expect((await snapshot(page))?.metadata?.tag).toBe('div');
 });
 
+test('captures the first inspection inside a dynamically loaded frame without waiting for discovery', async ({
+  page,
+}) => {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const frame = document.createElement('iframe');
+        frame.id = 'immediate-frame';
+        frame.addEventListener(
+          'load',
+          () => {
+            const doc = frame.contentDocument;
+            if (!doc?.body) {
+              reject(new Error('Missing same-origin frame document'));
+              return;
+            }
+            const button = doc.createElement('button');
+            button.textContent = 'Immediate frame button';
+            doc.body.append(button);
+            button.dispatchEvent(
+              new MouseEvent('click', { bubbles: true, composed: true, altKey: true }),
+            );
+            resolve();
+          },
+          { once: true },
+        );
+        document.querySelector('main')?.prepend(frame);
+      }),
+  );
+  await expect
+    .poll(async () => (await snapshot(page))?.metadata?.text)
+    .toBe('Immediate frame button');
+  expect((await snapshot(page))?.metadata?.context).toBe('iframe');
+});
+
 test('survives SPA navigation, dynamic React rendering, HMR, disconnects, copy failures and teardown', async ({
   page,
 }) => {

@@ -149,7 +149,7 @@ Bảng trên ghi lại các kiểm tra local ban đầu; không tự chứng min
 
 ### CI follow-up sau khi người dùng báo cả hai commit lỗi
 
-Lỗi E2E HMR đã được tái hiện 3/3 lần bằng native watcher backend trên macOS: test ghi correction khoảng 5 ms sau bản lỗi, trong cửa sổ coalescing 50 ms và trước response compile lỗi. Fixture nay dùng native backend, tách các lần save và chờ HTTP 500 thật; giữ nguyên stale/VERIFIED assertions, bổ sung state/no-reload assertions. Targeted case đạt 10/10 lần. Test bridge chờ file xuất hiện trong public getWatched trước khi sửa. Không đổi production watcher hay thêm retries/skip. Xem [báo cáo](ci-watcher-validation.md) để đọc bằng chứng và các lượt kiểm tra; không dùng local pass làm bằng chứng hosted CI đã xanh.
+Lỗi E2E HMR đã được tái hiện 3/3 lần bằng native watcher backend trên macOS: test ghi correction khoảng 5 ms sau bản lỗi, trong cửa sổ coalescing 50 ms và trước response compile lỗi. Fixture nay dùng native backend, tách các lần save và chờ HTTP 500 thật; giữ nguyên stale/VERIFIED assertions, bổ sung state/no-reload assertions. Targeted case đạt 10/10 lần. Test bridge chờ file xuất hiện trong public getWatched trước khi sửa. Không đổi production watcher hay thêm retries/skip. Commit aa76d23 đã sửa watcher: Node 24 sau đó pass toàn bộ CI; Node 22 phát hiện thêm race iframe load trước discovery trễ 200 ms. Regression first-click mới tái hiện lỗi 3/3 lần; runtime được sửa bằng parent-document load capture, hai ca iframe sau đó đạt 20/20 lượt lặp; full local check đạt 245 unit/integration + 27 E2E tests. Xem [báo cáo](ci-watcher-validation.md) và Actions của HEAD để biết kết quả hosted mới; không dùng local pass làm bằng chứng cả matrix đã xanh.
 
 ## 10. Cách chạy và lưu ý cho agent tiếp theo
 
