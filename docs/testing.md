@@ -45,6 +45,8 @@ A controlled 2,000-node DOM checks metadata bounds; a 1,000-event hover burst ch
 
 `tests/active/integration/mapping.test.ts` uses actual Vite transforms to verify map composition, namespaced module resolution/protection, disabled/SSR exclusion and real workspace policy/symlink/upstream-rewrite handling. `tests/e2e/mapping.spec.ts` copies the complex React source fixtures from `tests/fixtures/react-mapping/` into an owned temporary workspace. A sibling local package sits outside its Vite app root; aliases and explicit workspace includes make it eligible. Chromium checks exact source evidence, stable keyed rows, nested/memo/class/lazy/portal/render-prop patterns, native refs/unknowns, DOM clones, SPA/HMR, syntax-error invalidation/recovery and equivalence with an uninstrumented Vite baseline. The fixture records transform duration diagnostics as an ignored JSON artifact.
 
+The mapping browser fixture explicitly uses the native fs.watch backend on macOS too. Simulated saves are separated beyond the pinned watcher coalescing window; syntax-error recovery waits for a real failed compilation response and asserts state/no-reload preservation. The bridge source-change test waits for the target watched entry before writing. See [CI watcher follow-up](ci-watcher-validation.md) for hosted failure evidence and the reproduced race.
+
 Production tests check additional mapping markers. TypeScript/MagicString are Node-only production dependencies of analyzer; trace-mapping is a test dependency. No historical framework fixture is touched. See [Phase 04 validation](phase-04-validation.md) for results, timing observations and limits.
 
 ## Phase 05 coverage

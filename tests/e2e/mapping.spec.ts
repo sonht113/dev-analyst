@@ -5,9 +5,19 @@ import react from '@vitejs/plugin-react';
 import { devanalyst, type DevAnalystPlugin } from '@devanalyst/vite-plugin';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import type { ElementSourceMapping } from '@devanalyst/core';
 let root: string, server: ViteDevServer, plugin: DevAnalystPlugin, url: string;
 const sourceFiles = new Map<string, string>();
+const lastSourceSave = new Map<string, number>();
+async function saveSource(file: string, code: string): Promise<void> {
+  // Native Chokidar coalesces same-file changes for 50 ms. Model distinct editor
+  // saves, including cleanup, rather than losing a second synthetic write in that window.
+  const remaining = 100 - (performance.now() - (lastSourceSave.get(file) ?? -Infinity));
+  if (remaining > 0) await delay(remaining);
+  await writeFile(file, code);
+  lastSourceSave.set(file, performance.now());
+}
 async function mapping(page: Page, selector: string): Promise<ElementSourceMapping> {
   await page.locator(selector).click({ modifiers: ['Alt'], position: { x: 1, y: 1 } });
   await expect
@@ -68,7 +78,8 @@ test.beforeAll(async () => {
     plugins: [react(), plugin],
     logLevel: 'silent',
     cacheDir: join(root, 'node_modules/.vite'),
-    server: { host: '127.0.0.1', port: 0 },
+    // Exercise the native fs.watch path used by Linux CI on macOS too.
+    server: { host: '127.0.0.1', port: 0, watch: { useFsEvents: false, usePolling: false } },
   });
   await server.listen();
   const address = server.httpServer?.address();
@@ -191,7 +202,7 @@ test('Fast Refresh updates line evidence and revision while keeping React state 
   if (!original) throw new Error('Missing source');
   const time = await page.evaluate(() => performance.timeOrigin);
   try {
-    await writeFile(file, '\n\n' + original.replace('Mapping fixture', 'Updated mapping'));
+    await saveSource(file, '\n\n' + original.replace('Mapping fixture', 'Updated mapping'));
     await expect(page.locator('h1')).toHaveText('Updated mapping');
     await expect(page.locator('#count')).toHaveText('Count 1');
     await expect
@@ -209,7 +220,7 @@ test('Fast Refresh updates line evidence and revision while keeping React state 
     expect(after.revision).not.toBe(before.revision);
     expect(await page.evaluate(() => performance.timeOrigin)).toBe(time);
   } finally {
-    await writeFile(file, original);
+    await saveSource(file, original);
   }
 });
 test('native ref lifecycles, controlled React state and DOM output match an uninstrumented development baseline', async ({
@@ -252,11 +263,19 @@ test('source edits that fail to compile invalidate visible old DOM evidence and 
 }) => {
   const original = sourceFiles.get('app/src/App.tsx');
   if (!original) throw new Error('Missing source');
+  await page.locator('#count').click();
+  const time = await page.evaluate(() => performance.timeOrigin);
   const before = await mapping(page, '#count');
   expect(before.status).toBe('VERIFIED');
   const file = join(root, 'app/src/App.tsx');
   try {
-    await writeFile(file, original + '\nexport const broken = <div>');
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === '/src/App.tsx' && response.status() === 500,
+      ),
+      saveSource(file, original + '\nexport const broken = <div>'),
+    ]);
     await expect
       .poll(() =>
         page.evaluate(
@@ -268,7 +287,7 @@ test('source edits that fail to compile invalidate visible old DOM evidence and 
       () => window.__DEVANALYST_INSPECTOR__?.getSnapshot().metadata?.mapping,
     );
     expect(stale).toMatchObject({ status: 'UNKNOWN', source: null, reason: 'STALE_SOURCE' });
-    await writeFile(file, original.replace('Mapping fixture', 'Corrected mapping'));
+    await saveSource(file, original.replace('Mapping fixture', 'Corrected mapping'));
     await expect(page.locator('h1')).toHaveText('Corrected mapping');
     await expect
       .poll(() =>
@@ -277,8 +296,10 @@ test('source edits that fail to compile invalidate visible old DOM evidence and 
         ),
       )
       .toBe('VERIFIED');
+    await expect(page.locator('#count')).toHaveText('Count 1');
+    expect(await page.evaluate(() => performance.timeOrigin)).toBe(time);
   } finally {
-    await writeFile(file, original);
+    await saveSource(file, original);
   }
 });
 

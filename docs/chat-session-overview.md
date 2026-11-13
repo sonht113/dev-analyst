@@ -145,7 +145,11 @@ Local: macOS/Darwin 24.1.0 arm64, Node 22.23.2, pnpm 10.33.0, Vite 8.3.5, React 
 
 Kết quả trên là các lượt triển khai trước commit; tác vụ commit/handoff không tuyên bố chạy lại toàn bộ runtime suites. Những lỗi trong quá trình phát triển và cách sửa được ghi trong validation reports. Các report Phase 03–05 mô tả trạng thái tại lúc phase đó hoàn tất, nên các mục “pending” lịch sử không thay thế status hiện tại.
 
-Không claim đã chạy Linux, Node 24, browser engines khác, hosted CI hoặc authenticated model quality. Các timing trong report là observation local riêng lẻ, không phải benchmark hay target đã đạt. Generated `dist`, `test-results` và metrics tạm không được commit.
+Bảng trên ghi lại các kiểm tra local ban đầu; không tự chứng minh Linux/Node 24, browser engines khác hoặc authenticated model quality. Sau push, cả hai commit đã có CI failures và được xử lý trong [CI watcher follow-up](ci-watcher-validation.md); kiểm tra Actions của commit sửa để biết kết quả hosted hiện tại. Các timing trong report là observation local riêng lẻ, không phải benchmark hay target đã đạt. Generated `dist`, `test-results` và metrics tạm không được commit.
+
+### CI follow-up sau khi người dùng báo cả hai commit lỗi
+
+Lỗi E2E HMR đã được tái hiện 3/3 lần bằng native watcher backend trên macOS: test ghi correction khoảng 5 ms sau bản lỗi, trong cửa sổ coalescing 50 ms và trước response compile lỗi. Fixture nay dùng native backend, tách các lần save và chờ HTTP 500 thật; giữ nguyên stale/VERIFIED assertions, bổ sung state/no-reload assertions. Targeted case đạt 10/10 lần. Test bridge chờ file xuất hiện trong public getWatched trước khi sửa. Không đổi production watcher hay thêm retries/skip. Xem [báo cáo](ci-watcher-validation.md) để đọc bằng chứng và các lượt kiểm tra; không dùng local pass làm bằng chứng hosted CI đã xanh.
 
 ## 10. Cách chạy và lưu ý cho agent tiếp theo
 
@@ -180,4 +184,4 @@ Chưa triển khai đầy đủ: browser composition/RPC cho static/AI result di
 
 Prompt gợi ý để chuyển cho agent review:
 
-> Đọc AGENTS.md và docs/chat-session-overview.md, sau đó review thay đổi từ aab9354 đến 59caac4 cho Phase 03–06. Đối chiếu constitution, ADR 0005–0008 và validation reports; ưu tiên correctness, source evidence/confidence, React semantics, privacy/read-only enforcement, cancellation/resource bounds, TypeScript/imports và realistic test coverage. Báo cáo vấn đề theo mức độ cùng file/line và cách tái hiện, phân biệt vấn đề đã chứng minh với rủi ro/chỗ chưa kiểm chứng. Không coi mock CLI success là live inference success. Không tự bắt đầu Phase 07, thêm browser AI/source RPC, mở rộng framework, publish hoặc push thay đổi mới khi chưa có yêu cầu tiếp theo.
+> Đọc AGENTS.md và docs/chat-session-overview.md, sau đó review thay đổi từ aab9354 đến HEAD (code chính 59caac4 và CI watcher follow-up) cho Phase 03–06. Đối chiếu constitution, ADR 0005–0008 và validation reports; ưu tiên correctness, source evidence/confidence, React semantics, privacy/read-only enforcement, cancellation/resource bounds, TypeScript/imports và realistic test coverage. Báo cáo vấn đề theo mức độ cùng file/line và cách tái hiện, phân biệt vấn đề đã chứng minh với rủi ro/chỗ chưa kiểm chứng. Không coi mock CLI success là live inference success. Không tự bắt đầu Phase 07, thêm browser AI/source RPC, mở rộng framework, publish hoặc push thay đổi mới khi chưa có yêu cầu tiếp theo.

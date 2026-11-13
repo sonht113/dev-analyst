@@ -339,6 +339,11 @@ describe('real Vite and authenticated bridge', () => {
 
   it('reports real allowed file changes without replacing native Vite HMR', async () => {
     const { root, server } = await start();
+    // HTTP/bridge listening does not imply that the initial source crawl has
+    // installed the file watch yet. Wait for the real watched entry before editing.
+    await expect
+      .poll(() => server.watcher.getWatched()[join(server.config.root, 'src')], { timeout: 5000 })
+      .toContain('main.js');
     const client = connect(await bootstrap(server), origin(server));
     await client.ready;
     await writeFile(
@@ -346,10 +351,12 @@ describe('real Vite and authenticated bridge', () => {
       'document.querySelector("#app").textContent = "Changed";',
     );
     await expect
-      .poll(() =>
-        client.messages.some(
-          (event) => event.type === 'source.changed' && event.payload.file === 'src/main.js',
-        ),
+      .poll(
+        () =>
+          client.messages.some(
+            (event) => event.type === 'source.changed' && event.payload.file === 'src/main.js',
+          ),
+        { timeout: 5000 },
       )
       .toBe(true);
     expect((await fetch(`${origin(server)}/src/main.js`)).status).toBe(200);
