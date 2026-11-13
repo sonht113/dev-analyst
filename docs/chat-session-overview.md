@@ -1,157 +1,95 @@
-# DevAnalyst — Bàn giao conversation và trạng thái hiện tại
+# DevAnalyst — Overview conversation và bàn giao Phase 07–09
 
-Cập nhật ngày 2026-11-13, sau khi triển khai Phase 03–06 và xử lý các lỗi/cảnh báo TypeScript được người dùng phản ánh. Tài liệu này thay thế bản overview chỉ đến Phase 02; bằng chứng lịch sử được giữ trong [Phase 02 validation](phase-02-validation.md). Trạng thái sản phẩm chi tiết nằm tại [progress](progress.md), còn phạm vi bắt buộc nằm tại [implementation plan](implementation-plan.md).
+Cập nhật ngày 2026-11-13. Conversation này tiếp nối nền tảng Phase 01–06 và các sửa lỗi CI/watcher/iframe. Owner lần lượt yêu cầu triển khai Phase 07, Phase 08, Phase 09, sau đó cho phép commit, push và cập nhật overview. Trạng thái sản phẩm chi tiết nằm tại [progress](progress.md); phạm vi bắt buộc nằm tại [implementation plan](implementation-plan.md).
 
 ## 1. Git và phạm vi bàn giao
 
-- Repository: `sonht113/dev-analyst`; branch làm việc: `master`, remote `origin`.
-- Baseline trước conversation triển khai này: `aab9354` — foundation và Vite bridge Phase 01–02.
-- Code Phase 03–06 đã commit và push: [`59caac4f372960f3fac70143faf5af0df003b5f2`](https://github.com/sonht113/dev-analyst/commit/59caac4f372960f3fac70143faf5af0df003b5f2), `feat: implement inspector, source analysis and Claude CLI integration`.
-- Commit code gồm 77 file, bao gồm implementation, fixtures, tests, ADR, validation reports và sửa cấu hình TypeScript/editor. Các phase dùng chung contracts/exports/config nên được bàn giao trong một commit tổng hợp.
-- Tài liệu overview này được cập nhật bằng commit docs tiếp theo. Xem `git log -2 --oneline` để lấy cả code commit và handoff commit; không dùng lời mô tả “uncommitted” trong các validation report cũ làm trạng thái Git hiện tại.
-- Người dùng đã cho phép commit và push trong yêu cầu cuối của conversation. Việc này không cho phép publish package, force-push, rewrite history, sửa external service hoặc tự triển khai phase mới.
+- Repository: `sonht113/dev-analyst`; branch `master`, remote `origin`.
+- Baseline trước Phase 07–09: `541eddbc05e1e6b08023a50d120ce4aa03f27b38` — sửa việc gắn listener ngay khi iframe tải xong. Các commit trước gồm `aa76d23` (đồng bộ native watcher fixtures), `f84d6da` (overview cũ), `59caac4` (Phase 03–06).
+- Code Phase 07–09 đã commit và push: [`5cc33d328d09bc9eb700f1326861881b38ecaaaf`](https://github.com/sonht113/dev-analyst/commit/5cc33d328d09bc9eb700f1326861881b38ecaaaf), `feat: add predictive analysis, persistent cache and inspector UI`.
+- Commit code gồm 76 file, 8.573 dòng thêm và 84 dòng bỏ, bao gồm implementation, tests, contracts/exports/configuration, ADR và validation reports. Các phase dùng chung hạ tầng nên được bàn giao trong một commit tổng hợp.
+- Overview này được cập nhật bằng commit docs ngay sau commit code. Dùng `git log -2 --oneline` để lấy cả hai. Những câu “uncommitted” hoặc “chưa được phép commit/push” trong validation reports mô tả thời điểm triển khai từng phase, không phải trạng thái bàn giao sau yêu cầu cuối.
+- Không publish package, tạo PR, force-push, rewrite history hoặc thay đổi external services. Yêu cầu commit/push này không tự cho phép triển khai phase kế tiếp.
 
-## 2. Quyết định và yêu cầu của người dùng
+## 2. Quyết định xuyên suốt
 
-Thứ tự yêu cầu đã thực hiện:
+- Giữ tên **DevAnalyst**, namespace **`@devanalyst/*`**, CLI `devanalyst`. Prompt có dùng tên lịch sử DevLens/`@devlens/cache`; không tạo identity/package song song.
+- **Chỉ React + Vite + TypeScript.** Bảy package active: `core`, `vite-plugin`, `inspector`, `analyzer`, `ai`, `cache`, `cli`; app duy nhất `apps/playground-react`. Các framework cũ được giữ nguyên ngoài active workspace/build/test/CI.
+- TypeScript strict, pnpm workspaces, ESM-only, public package exports, relative imports có `.js`, internal dependencies dùng `workspace:*` và đồng bộ project references. `core`/`inspector` phải browser-safe.
+- Deterministic AST trước AI. VERIFIED xác minh bằng chứng/quan hệ nguồn, không chứng minh thực thi. Model prose tối đa INFERRED; thiếu bằng chứng hoặc nguồn cũ phải UNKNOWN.
+- AI opt-in với `enabled` và `permittedPaths`; giữ runtime no-tools permissions, guarded paths/hashes, context/resource limits và process cleanup từ Phase 06. Không coi mock success hay auth status là live inference success.
+- Không đổi text gốc hoặc normal host interactions; giữ React semantics/source maps. Không truyền raw DOM text, form/password values, history state hoặc dữ liệu runtime riêng tư sang Node/provider.
 
-1. Đọc overview Phase 02 rồi triển khai **Phase 03: Browser Element Inspector**.
-2. Kiểm tra/sửa TypeScript hoặc import errors/warnings trong các file thay đổi; người dùng yêu cầu tiếp tục xử lý.
-3. Triển khai **Phase 04: Reliable DOM-to-Source Mapping**.
-4. Triển khai **Phase 05: Static Code Analysis Engine**.
-5. Triển khai **Phase 06: Claude Code CLI AI Integration**.
-6. Commit, push và viết overview để agent khác review, nhận bối cảnh làm việc tiếp.
+Đọc [AGENTS.md](../AGENTS.md), [constitution](project-constitution.md), [architecture](architecture.md), [implementation plan](implementation-plan.md), [progress](progress.md), [testing](testing.md) trước khi làm tiếp. Repository không có `.codegraph/` tại lúc bàn giao; không tự tạo index. Nếu sau này có index thì dùng CodeGraph trước khi tìm/đọc code.
 
-Quy ước xuyên suốt:
+## 3. Phase 07 — Predictive Page Pre-analysis
 
-- Tên đã chốt là **DevAnalyst**, namespace **`@devanalyst/*`**, CLI `devanalyst`. Một số prompt dùng tên cũ DevLens/`@devlens/*`; implementation giữ identity được xác nhận, không tạo package song song.
-- **Chỉ hỗ trợ React + Vite + TypeScript.** Không triển khai Vue/Next/Nuxt/framework khác dù prompt/roadmap lịch sử có đề cập. Không mở rộng, cài dependencies hoặc chạy test cho framework ngoài scope; không xóa code lịch sử.
-- Chỉ làm phase/task được yêu cầu. Không tự bắt đầu Phase 07, thêm browser AI/source RPC, tích hợp editor hay persistent cache từ một yêu cầu review/handoff.
-- Không sửa text gốc của ứng dụng; giữ normal interactions, React behavior và source maps. Không thu thập password/form/private runtime values.
-- Deterministic AST trước AI; source reference phải có bằng chứng. `VERIFIED` là bằng chứng source, không chứng minh runtime execution; giữ `INFERRED` và `UNKNOWN` rõ ràng.
-- AI opt-in, có permitted paths, disclose provider transmission, runtime permissions và resource bounds. Không coi đăng nhập Claude CLI là bằng chứng có quyền với mọi API/SDK/model.
+- Browser tự thu thập cấu trúc phần tử nhìn thấy sau khi bridge kết nối; route pathname/hash-route tạo page generation. Giữ dynamic path segments, bỏ query/history state/opaque fragments.
+- Chỉ JSX origins được Node transform registry xác nhận mới vào queue. Protocol gửi structural metadata/source identity, không gửi DOM text, arbitrary coordinates hoặc values.
+- Queue bất đồng bộ ưu tiên selected, hovered và button/link/form/menu/tab; deduplicate module dùng chung giữa instance/page, hủy khi subscriber cuối rời đi, nâng ưu tiên phần tử chưa có cache khi queue đầy.
+- AST chạy trong cancellable worker threads, giải phóng worker trước khi nhả slot; bounded concurrency/queue/memory/depth/time. Startup, render và HMR không chờ behavior analysis.
+- Index page/module/component/related files; sáu trạng thái NOT_ANALYZED, QUEUED, ANALYZING, READY, STALE, FAILED cùng AI state/cache/error/progress riêng. Guarded dependency/config/missing-file/alias proofs bảo vệ reuse.
+- Automatic background Claude mặc định tắt; cần cả AI/path consent và `preanalysis.backgroundAI: true`. Chỉ source-backed uncertainty mới đủ điều kiện; provider failure giữ kết quả deterministic.
 
-Trước khi chỉnh sửa, đọc [AGENTS.md](../AGENTS.md), [constitution](project-constitution.md), [architecture](architecture.md), [implementation plan](implementation-plan.md), [progress](progress.md), [testing](testing.md). Nếu có `.codegraph/` ở root thì dùng CodeGraph trước khi tìm/đọc code; lúc bàn giao repo chưa có index này. Không tạo index thay người dùng.
+Mã chính: `packages/analyzer/src/preanalysis.ts`, `worker.ts`, `analysis-worker.ts`, `packages/inspector/src/preanalysis-runtime.ts`, core contracts và Vite composition. Xem [usage](preanalysis.md), [ADR 0009](adr/0009-predictive-page-preanalysis.md), [validation](phase-07-validation.md).
 
-## 3. Nền tảng đang hoạt động
+## 4. Phase 08 — Persistent Analysis Cache
 
-Bảy package: `core`, `vite-plugin`, `inspector`, `analyzer`, `ai`, `cache`, `cli`. Chỉ một app active: `apps/playground-react`. Tính cả root có chín workspace project.
+- SQLite trong worker riêng của `@devanalyst/cache`; page/component/element scopes, analysis và translation namespaces tách biệt. Default `.cache/devanalyst/analysis.sqlite`.
+- Cache identity gồm project/policy/subject/revision, route/runtime fingerprints khi liên quan, provider/model/schema/language. Lưu source/config hashes, missing resolver candidates và canonical aliases để kiểm tra sau restart/offline changes.
+- Watcher invalidation theo dependency, bảo thủ với topology changes; stale history luôn UNKNOWN và không được API current-result trả như bằng chứng mới. Cache hit hợp lệ tránh AST/Claude invocation mới.
+- Generation-checked writes, transactional migrations, bounded requests/locks/entries/bytes/TTL, stale-first LRU eviction. Corrupt/future/unsafe DB giữ nguyên file và dùng memory fallback với diagnostic.
+- Node plugin API có `inspectCache()`/`clearCache()`; không có browser cache/filesystem administration RPC. Chặn HTTP cache paths và cache đặt trong Vite public/build output; loại private/secret/runtime fields khỏi persistence.
+- Cache workers dùng public analyzer workspace-only export để tránh khởi tạo TypeScript compiler không cần thiết. Analyzer nhận persistence hooks, không phụ thuộc ngược cache.
 
-Node.js yêu cầu `^22.22.3 || ^24.15.0`; local đã kiểm chứng bằng Node 22.23.2, pnpm 10.33.0. TypeScript 6.0.3, Vite 8.3.5, React 19.3.1. Packages ESM-only, private; cross-package imports dùng public exports và `workspace:*`, relative TypeScript imports dùng `.js`, project references theo dependencies. `core`/`inspector` phải browser-safe.
+Mã chính: `packages/cache/src/{contracts,database,key,payload,persistent,privacy,worker}.ts`, `packages/vite-plugin/src/cache.ts`. Xem [usage/recovery](persistent-cache.md), [ADR 0010](adr/0010-persistent-analysis-cache.md), [validation](phase-08-validation.md).
 
-Phase 02 kế thừa gồm Vite development-only injection, authenticated loopback WebSocket bridge, sanitized route tracking, source notices, reconnect/lifecycle/restart, guarded source reads và CLI dev/doctor. Bridge xác minh Origin/Host/token, không có tùy ý file-read/shell RPC. Hiện hỗ trợ standalone HTTP Vite trên loopback; HTTPS và middleware mode chưa hỗ trợ. Xem [ADR 0004](adr/0004-vite-local-bridge.md).
+## 5. Phase 09 — Translation and AI Inspector UI
 
-## 4. Phase 03 — Browser Element Inspector
+- Tiếp tục native Shadow DOM UI theo ngoại lệ đã được chấp nhận ở ADR 0005; không chuyển framework/bundler. Hover gọn, pointer-transparent; Alt+Click/keyboard inspection mở chi tiết được ghim.
+- Original Japanese, Vietnamese translation, component/source origin, purpose, visibility/disabled guards, handlers/call paths, API/navigation/state/effects, confidence và clickable source excerpts. Evidence links không đổi URL host hoặc mở editor.
+- Translation, deterministic analysis và AI explanation là ba lane độc lập, stream kết quả theo bounded chunks. Glossary/cache dịch xuất hiện ngay khi có thể; không chờ business analysis. Hover không khởi tạo inference mới.
+- Browser chỉ gửi source IDs/revision/route/mode và normalized text digest. Node-only JSX literal descriptors xác nhận static text khớp digest; dynamic/custom/private/editable/control content không thành provider text.
+- Explicit expanded selection được phép gọi Claude khi AI/path consent hợp lệ, không cần bật automatic background AI. Translation và explanation có provider lane độc lập; giữ no-tools/context/hash/deadline controls.
+- Client cache hữu hạn, stale demotion và late-response rejection; translation/selected explanation có SQLite identity riêng và được tái sử dụng qua Vite restart. Cache clear cũng invalidates Node inspector memory.
+- Compact/expanded, independent copies, call search/confidence filtering, loading/partial/stale/failure/cache indicators, English/Vietnamese/Japanese chrome, system/light/dark themes, mobile positioning và keyboard/focus/text-selection behavior. Local storage chỉ chứa language/theme preferences.
 
-Implementation chính:
+Mã chính: inspector `inspection-client.ts`, `inspection-panel.ts`, `inspection-strings.ts`, `glossary.ts`; Vite `inspection.ts`/`inspection-view.ts`; analyzer `jsx-text.ts`; core inspector contracts và bridge composition. Xem [usage/consent](inspector-ui.md), [ADR 0011](adr/0011-translation-and-inspector-ui.md), [validation](phase-09-validation.md).
 
-- [browser.ts](../packages/inspector/src/browser.ts): selection/overlay, delegated hover và Alt interactions, right-click menu, pin/unpin/close/copy, keyboard/focus, geometry, lifecycle/cleanup và trạng thái lỗi/kết nối.
-- [metadata.ts](../packages/inspector/src/metadata.ts): bounded visible/Japanese text, allowlisted attributes và DOM/accessibility metadata; privacy exclusions.
-- [inspector.spec.ts](../tests/e2e/inspector.spec.ts): real React/Vite browser interactions, privacy, geometry, frames/shadow roots, accessibility/focus, SPA/HMR và recovery.
+## 6. Các lỗi đáng chú ý đã xử lý
 
-UI nằm trong Shadow DOM. Hover coalesce bằng animation frames; normal hover thụ động, các hành động inspection có activation rõ ràng. Supported DOM gồm SVG, links/buttons/forms/nested/dynamic React content, accessible open shadow roots và same-origin frames. Không sửa source text, không gọi AI từ browser, không lấy input values hay private/editable content.
+- Panel mở lớn làm mouse-up đổi target, click kế tiếp chọn nhầm ancestor: consume click đi cùng inspection pointer-down. Hồi quy SVG/frame/lazy/metadata giữ đúng target.
+- Wide sibling lists dùng hết extraction budget trước khi đọc text: dành budget cho descendants; fixture 2.000 siblings vẫn có Japanese text và giữ user selection qua geometry updates.
+- Old response có thể khôi phục confidence sau invalidation: chặn request cũ trước khi gửi request mới. Mapping disposal gửi data-free invalidation ngay trong HMR turn, trước paint, không chờ deferred watcher notice.
+- Route thay đổi nhưng DOM node vẫn tồn tại: client invalidates/reissues và reuse source-only cache hợp lệ; source/AI cũ không bị giữ như current vô thời hạn.
+- Persisted AI báo READY trước khi static hash validation hoàn tất: chỉ publish readiness sau validation. Deferred-validation regression tái hiện và chặn race một cách xác định; không nới cache-hit/provider-count assertions.
+- Call paths từng lấy global trace đầu tiên: chuyển sang bounded BFS bắt đầu tại phần tử được chọn, loại sibling handlers và propagate confidence của edge.
+- Invalid analyzer/provider configuration không được làm Vite fail startup: giữ host/bridge, safe diagnostic và ba FAILED lanes. Provider failure không xóa deterministic facts.
+- Fixture tạo file rồi gửi request trước watcher notice: đồng bộ với sự kiện thật. Không dùng retries hoặc xóa failing assertions để làm aggregate xanh.
 
-Giới hạn: cross-origin frames/closed roots opaque; geometry iframe phức tạp và accessible-name calculation không được mô tả là hoàn chỉnh. Japanese extraction là heuristic, có thể nhận cả Han text. Clipboard có error/manual recovery. DOM metadata không tự tạo source certainty.
+## 7. Kiểm chứng đã chạy
 
-Đọc [ADR 0005](adr/0005-browser-element-inspector.md) và [validation Phase 03](phase-03-validation.md).
+Local: Darwin arm64, Node 22.23.2, pnpm 10.33.0, TypeScript 6.0.3, Vite 8.3.5, React 19.3.1, Playwright Chromium. Node policy vẫn là `^22.22.3 || ^24.15.0`.
 
-## 5. Phase 04 — DOM-to-JSX source mapping
+| Kiểm tra                         | Kết quả đã thực hiện                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm lint`                      | ESLint zero warnings, browser/package boundaries, cycle checks và formatting đạt           |
+| `pnpm typecheck`                 | Bảy packages, root tools/tests và React fixture đạt                                        |
+| `pnpm test:smoke`                | **307 unit/integration tests trong 28 file + 39 Chromium E2E tests đạt**                   |
+| HMR regression `--repeat-each=5` | 5/5 lượt liên tiếp đạt; aggregate cuối cũng đạt                                            |
+| `pnpm test:independent`          | Cả bảy package build độc lập từ prerequisite outputs đã xóa                                |
+| `pnpm build`                     | Libraries và real React production build đạt; outputs được phục hồi sau independent checks |
+| `pnpm test:packages`             | Public exports/private-path rejection, declarations/maps, local packaging và CLI smoke đạt |
+| Analyzer queue regression        | 18/18 cases đạt sau test typing cleanup cuối                                               |
+| Docs/whitespace                  | Formatting, local document links và `git diff --check` đạt                                 |
 
-Implementation chính:
+Phase 07 từng đạt 266/30; Phase 08 đạt 290/31. Phase 09 bổ sung 17 unit/integration cases và tám browser cases. Các con số trong report cũ là snapshot lịch sử. Các checks trên đã chạy ở lượt implementation; lượt commit/overview không tuyên bố chạy lại toàn bộ runtime suites.
 
-- [instrumentation.ts](../packages/analyzer/src/instrumentation.ts): TypeScript AST + MagicString cho original `.tsx`/`.jsx`, metadata/IDs và source maps.
-- [mapping.ts](../packages/vite-plugin/src/mapping.ts): development-only Vite instrumentation/runtime integration và guarded source handling.
-- [mapping-runtime.ts](../packages/inspector/src/mapping-runtime.ts): public React ref callbacks, WeakMap trên committed DOM nodes, runtime IDs, stale/ambiguous outcomes.
-- [mapping.ts contract](../packages/core/src/mapping.ts), [mapping integration](../tests/active/integration/mapping.test.ts), [mapping E2E](../tests/e2e/mapping.spec.ts), fixtures trong `tests/fixtures/react-mapping/`.
+Primary integrations dùng AST workers, guarded sources, SQLite, React/Vite và Chromium thật. Claude được thay bằng owned subprocess fixture mô phỏng CLI protocol, controlled delays và malformed output; **chưa xác minh live authenticated inference hoặc translation quality**. Production tests kiểm tra cả bridge/inspector/mapping/AST/AI/queue/cache/UI markers không rò vào host bundle.
 
-Mapping gắn DOM node với JSX template origin, file/line/column và lexical component. Không dựa vào CSS selectors, ancestor guesses hoặc private Fiber. Reusable/list instances dùng runtime identity riêng; source site có thể giống nhau. HMR/SPA cập nhật/invalidate evidence, kể cả source đang syntax error trong khi DOM cũ vẫn còn. Tests so sánh behavior/ref lifecycle/DOM với baseline không instrumentation.
+UI failure fixture cuối quan sát 30 animation frames: max 16,80 ms, mean 16,19 ms. Hover burst 1.000 events: 3,30 ms, hai geometry reads. Đây là single local observations, không phải benchmark distribution hay bằng chứng toàn bộ project đạt latency SLA. Light/dark mobile screenshots đã được xem trực tiếp; light capture hiển thị lịch sử UNKNOWN/stale khi revalidate. Artifacts nằm trong ignored `test-results/`; log aggregate local ở `/private/tmp/devanalyst-phase09-smoke.log`, không phải prerequisite cho agent khác.
 
-Envelope được hỗ trợ có chủ ý: safe intrinsic JSX. Existing refs, spreads, custom elements, opaque factories/transformations, copied DOM và upstream-modified sources có thể trả UNKNOWN. Lexical component không phải complete React owner stack. Không tuyên bố map được mọi React program; phải đọc điều kiện ID stability và semantic limitations trước khi mở rộng.
-
-Đọc [ADR 0006](adr/0006-react-source-mapping.md) và [validation Phase 04](phase-04-validation.md).
-
-## 6. Phase 05 — Static Code Analysis Engine
-
-Public API: `createStaticAnalyzer(options)` từ `@devanalyst/analyzer`, với `analyzeDetailed(request)` và adapter `analyze(request): Finding[]`.
-
-Các file cần review:
-
-- [engine.ts](../packages/analyzer/src/engine.ts): orchestration/result/selected subjects.
-- [project.ts](../packages/analyzer/src/project.ts): authorized snapshots, JSON/JSONC config, aliases/TypeScript paths, closed module resolver/compiler host.
-- [semantic.ts](../packages/analyzer/src/semantic.ts), [extract.ts](../packages/analyzer/src/extract.ts), [syntax.ts](../packages/analyzer/src/syntax.ts): symbols, components/props, guards, handlers/calls/hooks/state/effects, API/navigation classification và bounded tracing.
-- [analysis-options.ts](../packages/analyzer/src/analysis-options.ts), [workspace.ts](../packages/analyzer/src/workspace.ts), [analysis contract](../packages/core/src/analysis.ts).
-
-TS/JS/TSX/JSX được phân tích mà không import/evaluate app/config code. Closed graph hỗ trợ local imports/re-exports/barrels, aliases/path maps, canonical cycle prevention và budget/cancel diagnostics. Phát hiện source patterns cho React Router, fetch, Axios/service wrappers, callbacks và state/hooks/effects. Endpoints/destinations động không được đoán. Plain render-method classes, custom hooks, candidate dispatch/prop callbacks và map-returning components có confidence thận trọng.
-
-Workspace policy đã chuyển từ Vite sang analyzer để tránh dependency cycle; file Vite cũ là compatibility re-export. Giữ containment, mandatory exclusions, symlink/inode/change checks và 256 KiB/file. AI cũng dùng public policy này.
-
-Mọi detailed finding có `execution: not-evaluated`, evidence/timestamp/cache state và trace confidence riêng. Module containment không phải invocation. `complete` nghĩa pipeline hoàn tất trong scope được hỗ trợ, không có nghĩa mọi behavior đã biết. Không có full interpreter/dataflow/CSS cascade, external implementation traversal hoặc atomic repository snapshot. So mapping revision với `sourceHashes` trước khi gắn analysis vào runtime selection.
-
-Đọc [API guide](static-analysis.md), [ADR 0007](adr/0007-static-analysis-engine.md), [unit tests](../packages/analyzer/src/engine.test.ts), [integration](../tests/active/integration/analysis.test.ts) và [validation Phase 05](phase-05-validation.md).
-
-## 7. Phase 06 — Claude Code CLI provider
-
-Public API: `createClaudeCodeProvider(options)` từ `@devanalyst/ai`; `checkReadiness()`, `checkReadiness({probe:true})`, `explain()` và `explainDetailed()`.
-
-Các file cần review:
-
-- [claude.ts](../packages/ai/src/claude.ts): provider lifecycle/readiness, context invocation, retry và result conversion.
-- [process.ts](../packages/ai/src/process.ts): executable identity, environment, queue/global concurrency, deadline/cancel, POSIX process-group cleanup.
-- [context.ts](../packages/ai/src/context.ts): consent intersection, snapshot/hash/range checks, whitelisted AST relationships/guards, secret heuristics và budgets.
-- [protocol.ts](../packages/ai/src/protocol.ts), [contracts.ts](../packages/ai/src/contracts.ts), [options.ts](../packages/ai/src/options.ts): fixed CLI arguments, stream guards, strict output schema và bounded configuration.
-- [AI unit tests](../packages/ai/src/claude.test.ts), [public integration](../tests/active/integration/ai.test.ts), mock executable data `tests/fixtures/claude-cli.mjs.txt` và helper `tests/active/helpers/claude-fixture.ts`.
-
-Thiết kế quan trọng:
-
-- Opt-in và explicit permitted paths; không tự bật khi import/factory construction; từ chối production.
-- Spawn bằng argument arrays, `shell:false`, source context qua stdin, isolated temporary cwd, fixed system-only child PATH và environment allowlist. Không đưa workspace vào cwd/add-dir hoặc cho tùy ý CLI arguments.
-- Safe/restricted mode, empty tool set, dontAsk, strict empty MCP, tắt skills/customizations/hooks/session persistence; validate stream metadata. Chỉ chấp nhận schema-return `StructuredOutput` và ba built-in plugins đã nhận diện; có tool/plugin/hook capability ngoài policy thì hủy/reject.
-- CLI hiện chỉ allow đúng **2.1.323**, native POSIX; release khác fail closed chờ kiểm chứng. Windows wrappers, custom gateways và third-party routing chưa hỗ trợ.
-- Context từ deterministic findings + matching source hashes, giới hạn files/snippets/bytes/tokens, kiểm tra lại source trước khi nhận kết quả. Secret/path detection là heuristic; caller vẫn phải chọn dữ liệu an toàn. Không gửi form/password/private runtime values.
-- Model trả evidence IDs, Node gắn lại evidence thật; không tin file/line do model tự viết. AI prose tối đa INFERRED, không ghi đè deterministic VERIFIED facts. Thiếu source thì UNKNOWN, kể cả UI-only translation.
-- Queue/concurrency, timeout, cancel, output/usage budgets và transient-only retries có giới hạn. Không retry auth/quota/invalid-output/permission/stale-context failures. Không log raw source/provider diagnostics/credentials.
-
-**Giới hạn runtime:** đây là CLI capability/permission controls, không phải OS sandbox chống executable/admin policy độc hại. Installed CLI, recognized built-ins và host administrator là trust boundary. Secret heuristics không bảo đảm nhận diện mọi bí mật; token/spend caps không bảo đảm hóa đơn chính xác; cancellation có thể đã tiêu tốn provider tokens. CLI/provider có retention policies riêng. Đọc đầy đủ ADR trước khi sửa flags hoặc tăng khả năng đọc/chạy công cụ.
-
-**Kết quả CLI thật tại thời điểm bàn giao:** native 2.1.323 được phát hiện. Cả sandbox và lần kiểm tra ngoài sandbox được cho phép đều trả `AI_AUTH_UNAVAILABLE`, `authenticated:false`. Một invocation tổng hợp, không dùng source dự án, xác minh init/structured auth-error path. Chưa có successful live authenticated inference, chưa xác minh chất lượng dịch/business reasoning từ model thật. Mocked structured success không được gọi là live success. Không tự đăng nhập, đổi credentials hoặc suy ra SDK entitlement.
-
-Đọc [usage/compatibility](claude-code.md), [ADR 0008](adr/0008-claude-code-provider.md) và [validation Phase 06](phase-06-validation.md).
-
-## 8. TypeScript/editor fixes
-
-Root `tsconfig.json` extends `tsconfig.tools.json`, references trực tiếp cả bảy package; root typecheck kiểm tra cùng project để unit/integration/E2E files không rơi vào inferred editor project thiếu Node types. Các library production configs tiếp tục loại tests và dùng explicit exports/references.
-
-TypeScript server semantic/suggestion diagnostics đã được chạy thêm ngoài CLI typecheck. Các deprecated APIs của TS 6 được sửa: ImportClause dùng `phaseModifier`; đọc legacy `baseUrl` qua typed compatibility view để hỗ trợ project cũ. AI deadline signal có explicit `AbortSignal` type để declaration emit hợp lệ. Không dùng suppression để che các diagnostics này.
-
-Temporary script kiểm tra tsserver trong phiên nằm ngoài repository và không phải prerequisite cho agent mới. Nếu cần tái hiện editor warnings, dùng workspace TypeScript 6.0.3, kiểm tra project ownership của file và cả semantic/suggestion diagnostics, không chỉ `tsc` exit status.
-
-## 9. Kiểm chứng đã chạy
-
-Local: macOS/Darwin 24.1.0 arm64, Node 22.23.2, pnpm 10.33.0, Vite 8.3.5, React 19.3.1, Playwright Chromium.
-
-| Kiểm tra                    | Kết quả cuối đã thực hiện                                                               |
-| --------------------------- | --------------------------------------------------------------------------------------- |
-| Offline/frozen pnpm install | Đạt, chín workspace project                                                             |
-| `pnpm lint`                 | Đạt ESLint zero warnings, formatting, dependency boundaries/cycles                      |
-| `pnpm typecheck`            | Đạt packages, root tools/tests và React app                                             |
-| TypeScript server           | Không có semantic/suggestion diagnostics trong changed TypeScript files được kiểm tra   |
-| `pnpm test:smoke`           | **245 unit/integration tests trong 20 file + 26 Chromium E2E tests đạt**                |
-| `pnpm test:independent`     | Cả bảy package build độc lập sau khi xóa prerequisite outputs                           |
-| `pnpm build`                | Đạt packages và real React production build                                             |
-| `pnpm test:packages`        | Đạt exports, private import rejection, declarations/maps, local packaging và CLI checks |
-| Native Claude diagnostics   | Detection/capability/auth-error path đạt; successful live inference chưa kiểm chứng     |
-
-53 AI unit cases và một public-package AI integration được thêm ở Phase 06. Browser mapping E2E còn có luồng selected DOM → JSX reference → Node static analyzer, giữ nguyên React state. Production tests kiểm tra thêm inspector/mapping/analyzer/AI markers không rò vào host bundle.
-
-Kết quả trên là các lượt triển khai trước commit; tác vụ commit/handoff không tuyên bố chạy lại toàn bộ runtime suites. Những lỗi trong quá trình phát triển và cách sửa được ghi trong validation reports. Các report Phase 03–05 mô tả trạng thái tại lúc phase đó hoàn tất, nên các mục “pending” lịch sử không thay thế status hiện tại.
-
-Bảng trên ghi lại các kiểm tra local ban đầu; không tự chứng minh Linux/Node 24, browser engines khác hoặc authenticated model quality. Sau push, cả hai commit đã có CI failures và được xử lý trong [CI watcher follow-up](ci-watcher-validation.md); kiểm tra Actions của commit sửa để biết kết quả hosted hiện tại. Các timing trong report là observation local riêng lẻ, không phải benchmark hay target đã đạt. Generated `dist`, `test-results` và metrics tạm không được commit.
-
-### CI follow-up sau khi người dùng báo cả hai commit lỗi
-
-Lỗi E2E HMR đã được tái hiện 3/3 lần bằng native watcher backend trên macOS: test ghi correction khoảng 5 ms sau bản lỗi, trong cửa sổ coalescing 50 ms và trước response compile lỗi. Fixture nay dùng native backend, tách các lần save và chờ HTTP 500 thật; giữ nguyên stale/VERIFIED assertions, bổ sung state/no-reload assertions. Targeted case đạt 10/10 lần. Test bridge chờ file xuất hiện trong public getWatched trước khi sửa. Không đổi production watcher hay thêm retries/skip. Commit aa76d23 đã sửa watcher: Node 24 sau đó pass toàn bộ CI; Node 22 phát hiện thêm race iframe load trước discovery trễ 200 ms. Regression first-click mới tái hiện lỗi 3/3 lần; runtime được sửa bằng parent-document load capture, hai ca iframe sau đó đạt 20/20 lượt lặp; full local check đạt 245 unit/integration + 27 E2E tests. Xem [báo cáo](ci-watcher-validation.md) và Actions của HEAD để biết kết quả hosted mới; không dùng local pass làm bằng chứng cả matrix đã xanh.
-
-## 10. Cách chạy và lưu ý cho agent tiếp theo
+## 8. Cách chạy và giới hạn
 
 ```sh
 pnpm install --frozen-lockfile
@@ -164,24 +102,19 @@ pnpm build
 pnpm test:packages
 ```
 
-- Không chạy `test:independent` đồng thời với build, watcher hoặc tests đang dùng dist: lệnh này xóa generated outputs rồi build lại.
-- Lint nên chạy sau transient fixture suites; đã gặp race khi ESLint đang walk thư mục fixture vừa bị test cleanup.
-- Integration/E2E cần bind loopback và launch browser/subprocess; nếu sandbox chặn, dùng approval flow phù hợp và ghi rõ lỗi môi trường, không giảm assertions.
-- Chỉ dùng targets active. Không sửa lockfile/dist thủ công. Không đặt bridge credentials vào URL/log/network trace. Tests dùng owned temporary fixtures, không thay app source của người dùng.
-- `pnpm dev` chạy React playground; CLI dev/doctor đã có. Cấu hình hiện truyền rõ qua Vite plugin, chưa có automatic `devanalyst.config.ts` loader hoàn chỉnh.
+- Không chạy `test:independent` đồng thời với builds/watchers/tests dùng dist: lệnh xóa generated outputs. Chạy lint/format sau transient fixture suites để tránh đọc fixture đang được tạo/xóa.
+- Loopback/browser/subprocess suites có thể cần ngoài sandbox. Báo lỗi môi trường đúng thực tế; không hạ assertions hoặc đổi sang mock tính năng chính.
+- `pnpm dev` chạy React playground; sửa served DevAnalyst runtime thì rebuild packages và restart Vite. Không chỉnh generated outputs/lockfile bằng tay; dependency resolution qua pnpm.
+- Standalone local HTTP Vite 8.3.5+ là envelope hiện tại; HTTPS/middleware mode chưa hỗ trợ. Source mapping giữ safe JSX envelope, không dùng private React internals/selector guesses.
+- Sau Vite restart, trang cũ có thể cần reload để tạo origin manifests mới trước khi cache được chấp nhận. Lazy modules được index sau commit.
+- Dynamic/private runtime text không gửi lên AI; không khớp static source thì translation có thể unavailable/UNKNOWN. Locale preference đổi chrome, không giả vờ dịch Vietnamese provider prose sang ngôn ngữ khác.
+- SQLite logical byte budget không đồng nhất physical disk/RSS. Corrupt/incompatible DB dùng bounded fallback và giữ disk file; xem recovery guide. Experimental SQLite warning của Node 22 không bị suppress.
+- Source guards và no-tools execution có trusted CLI/admin boundary đã nêu trong ADR 0008; không tuyên bố OS sandbox hoặc bảo mật tuyệt đối. Other browser/OS/Node matrix và authenticated model quality chưa được thiết lập bởi local pass.
 
-## 11. Review ưu tiên và công việc còn lại
+## 9. Phần việc còn lại và review tiếp theo
 
-Các điểm nên review trước khi mở rộng:
+Chưa hoàn tất product: conversational follow-up journeys, VS Code/Cursor editor navigation, automatic configuration-file loader và operational utilities đầy đủ, wider performance/accessibility/failure matrix, authenticated model validation và release preparation. Mọi F01–F18/Definition of Done cho React + Vite vẫn bắt buộc. Không tự bắt đầu phase mới, mở rộng framework, publish hoặc push thay đổi mới từ một yêu cầu review.
 
-1. Mapping có giữ đúng semantics/ref lifecycle/source maps, invalidation khi HMR lỗi, list identities và UNKNOWN boundaries không; không mở safe envelope bằng selector/Fiber guesses.
-2. Static graph/call traces/guards có giữ confidence đúng, tránh false VERIFIED từ mutable/dynamic/external patterns, và resource/canonical-path checks còn đủ không.
-3. AI consent intersection, exact hash/range provenance, source-change handling, output citations, secret heuristics, queue/deadline/process-group cleanup và runtime tool policy có đúng trust boundary đã mô tả không.
-4. TypeScript editor projects, public exports, runtime dependencies và project references có nhất quán khi build độc lập không.
-5. Tests có thực sự kiểm chứng source/host preservation và failure paths, hay còn gap cần báo cáo; phân biệt mocked CLI protocol với authenticated model behavior.
+Prompt gợi ý cho agent review:
 
-Chưa triển khai đầy đủ: browser composition/RPC cho static/AI result display, translation/follow-up UI journeys, editor navigation VS Code/Cursor, background/pre-analysis scheduling, SQLite/persistent cache/invalidation, full configuration utilities, performance/release matrix. HTTPS/middleware support và các React/browser/OS versions ngoài envelope vẫn là giới hạn. Toàn bộ F01–F18/Definition of Done còn bắt buộc; không coi API foundations hoặc số tests đạt là product completion.
-
-Prompt gợi ý để chuyển cho agent review:
-
-> Đọc AGENTS.md và docs/chat-session-overview.md, sau đó review thay đổi từ aab9354 đến HEAD (code chính 59caac4 và CI watcher follow-up) cho Phase 03–06. Đối chiếu constitution, ADR 0005–0008 và validation reports; ưu tiên correctness, source evidence/confidence, React semantics, privacy/read-only enforcement, cancellation/resource bounds, TypeScript/imports và realistic test coverage. Báo cáo vấn đề theo mức độ cùng file/line và cách tái hiện, phân biệt vấn đề đã chứng minh với rủi ro/chỗ chưa kiểm chứng. Không coi mock CLI success là live inference success. Không tự bắt đầu Phase 07, thêm browser AI/source RPC, mở rộng framework, publish hoặc push thay đổi mới khi chưa có yêu cầu tiếp theo.
+> Đọc AGENTS.md và docs/chat-session-overview.md, sau đó review diff từ 541eddb đến 5cc33d3 cho Phase 07–09, cùng commit handoff kế tiếp. Đối chiếu constitution, ADR 0009–0011 và validation reports. Ưu tiên queue priority/dedup/cancellation/resource bounds; SQLite migration/concurrency/invalidation/privacy; source-scoped traces và confidence; independent translation/AI consent; stale/late-response/HMR/route behavior; host interaction/accessibility/production exclusion; public exports/project references và realistic integration coverage. Phân biệt vấn đề đã tái hiện với rủi ro, static evidence với runtime execution, mock CLI success với live authenticated success. Không tự triển khai phase tiếp theo hoặc thay đổi external services.
