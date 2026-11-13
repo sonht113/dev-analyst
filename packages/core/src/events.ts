@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { serializedErrorSchema } from './errors.js';
 import { findingSchema, sourceReferenceSchema } from './findings.js';
 import { workspacePathSchema } from './config.js';
+import { inspectorUpdateSchema } from './inspector.js';
+import { pageElementSchema, pageProgressSchema } from './preanalysis.js';
 
 /** Versioned local bridge protocol. */
 export const PROTOCOL_VERSION = 1;
@@ -66,6 +68,45 @@ export type RoutePayload = z.infer<typeof routePayloadSchema>;
 export const clientEventSchema = z.discriminatedUnion('type', [
   z.strictObject({
     ...envelope,
+    type: z.literal('inspector.request'),
+    payload: z.strictObject({
+      requestId: z.uuid(),
+      pageId: z.uuid(),
+      element: pageElementSchema,
+      route: routePayloadSchema,
+      textDigest: z
+        .string()
+        .regex(/^[a-f0-9]{64}$/)
+        .nullable(),
+      mode: z.enum(['compact', 'expanded']),
+    }),
+  }),
+  z.strictObject({
+    ...envelope,
+    type: z.literal('inspector.cancel'),
+    payload: z.strictObject({ requestId: z.uuid() }),
+  }),
+  z.strictObject({
+    ...envelope,
+    type: z.literal('page.index'),
+    payload: z.strictObject({
+      requestId: z.uuid(),
+      route: routePayloadSchema,
+      elements: z.array(pageElementSchema).max(8),
+      limited: z.boolean(),
+    }),
+  }),
+  z.strictObject({
+    ...envelope,
+    type: z.literal('page.priority'),
+    payload: z.strictObject({
+      requestId: z.uuid(),
+      element: pageElementSchema,
+      priority: z.enum(['hovered', 'selected']),
+    }),
+  }),
+  z.strictObject({
+    ...envelope,
     type: z.literal('route.changed'),
     payload: routePayloadSchema,
   }),
@@ -87,6 +128,12 @@ export const clientEventSchema = z.discriminatedUnion('type', [
 ]);
 
 export const serverEventSchema = z.discriminatedUnion('type', [
+  z.strictObject({
+    ...envelope,
+    type: z.literal('inspector.update'),
+    payload: inspectorUpdateSchema,
+  }),
+  z.strictObject({ ...envelope, type: z.literal('page.progress'), payload: pageProgressSchema }),
   z.strictObject({
     ...envelope,
     type: z.literal('bridge.ready'),

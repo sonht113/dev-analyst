@@ -44,20 +44,42 @@ See [Phase 02 validation](phase-02-validation.md) for exact final executed check
 - Native CLI 2.1.323 runs with argument arrays, isolated cwd, environment allowlist, no-tools permissions, strict empty MCP, disabled customizations and validated runtime metadata. POSIX process-group cancellation/deadlines, bounded queues/concurrency/context/usage and transient-only retries are implemented.
 - Deterministic findings and exact source hashes/ranges form the primary context. Shared workspace guards intersect AI consent; sensitive paths/content are excluded. Output IDs resolve to real evidence, Vietnamese prose is schema-validated, model certainty is capped at INFERRED, and original source/UI text is preserved.
 - Actual installed CLI detection and structured auth-error invocation were verified. Both sandboxed and authorized outside-sandbox readiness checks report no available authentication; successful live inference remains unverified. Mocked subprocess integrations exercise structured success/failure behavior without presenting it as live model success.
-- See [Phase 06 validation](phase-06-validation.md), [usage](claude-code.md) and [ADR 0008](adr/0008-claude-code-provider.md). Browser result/translation/follow-up UI, background scheduling, persistent cache and editor opening remain pending.
+- See [Phase 06 validation](phase-06-validation.md), [usage](claude-code.md) and [ADR 0008](adr/0008-claude-code-provider.md). Browser result/translation/follow-up UI, persistent cache and editor opening remain pending; Phase 07 below adds background scheduling.
+
+## Completed Phase 07 — Predictive page pre-analysis
+
+- Automatic viewport structural collection, route/hash-path identity, committed lazy component discovery and authenticated server-manifest validation. No DOM text/values or arbitrary file/source/AI requests are transported.
+- Shared-module priority queue, cancellable AST worker threads, selected/hovered/interactive ordering, cross-page deduplication, obsolete subscriber cancellation, resource bounds, progressive states and inspector status.
+- Dependency-hash-validated in-memory reuse, root/dependency invalidation and conservative topology invalidation. Separate opt-in background Claude consent; only AST uncertainty is eligible and provider failure preserves static results.
+- See [usage](preanalysis.md), [ADR 0009](adr/0009-predictive-page-preanalysis.md) and [validation](phase-07-validation.md). Persistent SQLite/layered caches, behavioral/AI result UI and full product acceptance remain pending.
+
+## Completed Phase 08 — Persistent analysis cache
+
+- Worker-owned SQLite in `@devanalyst/cache`, page/component/element scopes, separate code/translation namespaces, provider/model/schema/context keys and generation-checked writes.
+- Source/config/hash/missing-import/alias validation across restart, watcher invalidation, explicitly stale UNKNOWN history, bounded eviction/queues and Node inspection/clearing controls. Invalid databases are preserved with memory fallback diagnostics.
+- The composition reuses valid AST and AI results without another provider invocation. Source privacy is allowlisted; cache HTTP access/public-output placement is denied.
+- See [cache usage](persistent-cache.md), [ADR 0010](adr/0010-persistent-analysis-cache.md) and [validation](phase-08-validation.md). Rich analysis/translation/follow-up UI, editor navigation and release gates remain pending; no authenticated live AI success is claimed.
+
+## Completed Phase 09 — Translation and AI inspector UI
+
+- Compact hover and explicit expanded inspection with original Japanese, independent source-matched Vietnamese translation, scoped deterministic facts and opt-in Claude explanations. Hover never starts inference.
+- Component/source provenance, visibility/disabled guards, selected handler/call paths, API/navigation/state/effect evidence and explicit VERIFIED/INFERRED/UNKNOWN semantics. Clickable evidence opens an inline excerpt.
+- Per-lane loading/partial/stale/failure/cache indicators, bounded progressive rendering, late-response rejection, HMR/cancellation and persistent translation/selected-explanation reuse.
+- Independent copies, call search/confidence filtering, responsive positioning, native keyboard/focus behavior, English/Vietnamese/Japanese chrome and persistent theme/language preferences. Private/runtime text is excluded from provider requests.
+- See [usage](inspector-ui.md), [ADR 0011](adr/0011-translation-and-inspector-ui.md) and [validation](phase-09-validation.md). Editor navigation, conversational follow-ups, authenticated model quality and release gates remain pending.
 
 ## Current product status
 
-| Area                             | Status                                                                                                                                                                              |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared contracts/errors/logging  | Implemented, including local bridge settings/bootstrap/events                                                                                                                       |
-| Vite integration/local transport | Implemented for standalone HTTP loopback Vite 8.3.5+; HTTPS/middleware mode explicitly unsupported                                                                                  |
-| Browser inspector                | Route/connection runtime plus local DOM selection, Shadow DOM UI, metadata, hover/modifier/context actions, themes and keyboard/accessibility tests                                 |
-| React source analysis            | Safe JSX mapping plus bounded source analysis for components/props/conditions/handlers/hooks/state/API/navigation; runtime outcomes remain unverified                               |
-| Claude, translation, follow-ups  | Node CLI provider, guarded context, permissions and structured Vietnamese explanation/translation API implemented; browser composition and live authenticated model success pending |
-| Pre-analysis/persistent cache    | Interfaces only; scheduling, SQLite, invalidation and performance verification pending                                                                                              |
-| CLI/configuration/editor         | Help/version/dev/doctor and schema validation implemented; config-file loader, operational utilities/editor opening pending                                                         |
-| Complete testing/release         | Phase 02–06 infrastructure/browser/mapping/static/provider gates implemented; live authenticated AI, complete UI journeys and release preparation pending                           |
+| Area                             | Status                                                                                                                                                                                                                                   |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared contracts/errors/logging  | Implemented, including local bridge settings/bootstrap/events                                                                                                                                                                            |
+| Vite integration/local transport | Implemented for standalone HTTP loopback Vite 8.3.5+; HTTPS/middleware mode explicitly unsupported                                                                                                                                       |
+| Browser inspector                | Compact/expanded Shadow DOM UI, original/translation, progressive source/AI evidence, copies/search/filter, locales/themes, route/keyboard interactions and accessibility tests                                                          |
+| React source analysis            | Safe JSX mapping plus bounded source analysis for components/props/conditions/handlers/hooks/state/API/navigation; runtime outcomes remain unverified                                                                                    |
+| Claude, translation, follow-ups  | Node provider plus progressive source-backed translation/analysis UI implemented; explicit opt-in, digest-only browser requests and separate translation cache; follow-ups/live authenticated quality pending                            |
+| Pre-analysis/persistent cache    | Phase 07 scheduling, AST workers, progressive status and hash-validated memory reuse implemented; worker-owned SQLite layers, watcher invalidation and inspection/clearing added by Phase 08; whole-project latency benchmarking pending |
+| CLI/configuration/editor         | Help/version/dev/doctor and schema validation implemented; config-file loader, operational utilities/editor opening pending                                                                                                              |
+| Complete testing/release         | Phase 02–09 infrastructure/browser/mapping/static/provider/pre-analysis/cache/inspector gates implemented; live authenticated AI, later feature journeys and release preparation pending                                                 |
 
 Runtime guards and passing infrastructure tests do not establish complete source mapping, provider security, source-backed inspector explanations, or product readiness.
 
@@ -74,7 +96,7 @@ These are preserved files, not current support or future implementation commitme
 
 ## Remaining delivery gates
 
-Deliver inspector analysis presentation and richer source evidence/editor integration, opt-in read-only Claude explanations/translation/follow-ups, pre-analysis, persistent caches/invalidation, editor navigation, configuration/diagnostics completion, measured performance, accessibility/failure hardening, and release preparation. Resolve NPM scope ownership/licensing/release policy before release. Keep all F01–F18 acceptance criteria; no publication or later phase is authorized by this status update.
+Deliver inspector analysis presentation and richer source evidence/editor integration, opt-in read-only Claude explanations/translation/follow-ups, whole-project cache/performance hardening, editor navigation, configuration/diagnostics completion, measured performance, accessibility/failure hardening, and release preparation. Resolve NPM scope ownership/licensing/release policy before release. Keep all F01–F18 acceptance criteria; no publication or later phase is authorized by this status update.
 
 ## Future Roadmap
 

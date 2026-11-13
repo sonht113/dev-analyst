@@ -22,3 +22,8 @@ export type {
   StaticAnalysisFinding,
   StaticAnalysisDetail,
 } from '@devanalyst/core';
+export { createWorkerAnalyzer } from './worker.js';
+export { createPageOrchestrator } from './preanalysis.js';
+export type { PageOrchestratorOptions, PageAnalysisSnapshot } from './preanalysis.js';
+
+export type { JSXInspectionOrigin } from './jsx-text.js';

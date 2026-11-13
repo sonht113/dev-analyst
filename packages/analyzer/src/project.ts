@@ -17,6 +17,9 @@ export interface StaticProject {
   readonly files: ReadonlyMap<string, ts.SourceFile>;
   readonly imports: ReadonlyMap<string, readonly ModuleImport[]>;
   readonly hashes: Readonly<Record<string, string>>;
+  readonly dependencyHashes: Readonly<Record<string, string>>;
+  readonly missingDependencies: readonly string[];
+  readonly sourceAliases: Readonly<Record<string, string>>;
   readonly canonicalPaths: ReadonlyMap<string, string>;
 }
 export async function loadProject(
@@ -448,12 +451,23 @@ export async function loadProject(
     [...asts].map(([file, sf]) => [file, createHash('sha256').update(sf.text).digest('hex')]),
   );
   budget.check();
+  const missingDependencies: string[] = [];
+  for (const file of missed) {
+    if (await access.sourcePath(resolve(options.workspaceRoot, file), true))
+      missingDependencies.push(file);
+    budget.check();
+  }
   return {
     program,
     checker: program.getTypeChecker(),
     files: asts,
     imports,
     hashes,
+    dependencyHashes: Object.fromEntries(
+      [...texts].map(([file, text]) => [file, createHash('sha256').update(text).digest('hex')]),
+    ),
+    missingDependencies,
+    sourceAliases: Object.fromEntries([...aliases].filter(([alias, target]) => alias !== target)),
     canonicalPaths: aliases,
   };
 }

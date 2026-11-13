@@ -27,6 +27,11 @@ export const workspacePathSchema = z
     );
   }, 'Expected a workspace-relative path without parent traversal');
 
+export const cacheDirectorySchema = workspacePathSchema.refine(
+  (value) => !value.includes('\\') && value.split('/').every((part) => part !== '' && part !== '.'),
+  'Use a dedicated normalized cache directory inside the workspace.',
+);
+
 export const logLevelSchema = z.enum(['debug', 'info', 'warn', 'error', 'silent']);
 
 /** Local bridge policy. Remote binding is deliberately unsupported. */
@@ -70,6 +75,7 @@ export const configSchema = z
     cache: z
       .strictObject({
         enabled: z.boolean().default(true),
+        directory: cacheDirectorySchema.default('.cache/devanalyst'),
         maxSizeMb: z.number().int().min(1).max(4096).default(256),
       })
       .prefault({}),
@@ -77,6 +83,7 @@ export const configSchema = z
       .strictObject({
         enabled: z.boolean().default(true),
         theme: z.enum(['system', 'light', 'dark']).default('system'),
+        language: z.enum(['ja', 'vi', 'en']).default('en'),
       })
       .prefault({}),
     logLevel: logLevelSchema.default('info'),

@@ -4,6 +4,7 @@ export {
   logLevelSchema,
   sensitivePathPatterns,
   workspacePathSchema,
+  cacheDirectorySchema,
   bridgeOptionsSchema,
 } from './config.js';
 export type { DevAnalystConfig, DevAnalystConfigInput, LogLevel } from './config.js';
@@ -52,3 +53,9 @@ export type {
   AnalysisDiagnostic,
   StaticAnalysisResult,
 } from './analysis.js';
+
+export { analysisStateSchema, pageElementSchema, pageProgressSchema } from './preanalysis.js';
+export type { AnalysisState, PageElement, PageItemStatus, PageProgress } from './preanalysis.js';
+
+export { inspectorItemSchema, inspectorUpdateSchema } from './inspector.js';
+export type { InspectorItem, InspectorUpdate } from './inspector.js';

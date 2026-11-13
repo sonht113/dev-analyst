@@ -34,7 +34,9 @@
     "@devanalyst/core": "workspace:*",
     "@devanalyst/inspector": "workspace:*",
     "ws": "8.22.2",
-    "@devanalyst/analyzer": "workspace:*"
+    "@devanalyst/analyzer": "workspace:*",
+    "@devanalyst/ai": "workspace:*",
+    "@devanalyst/cache": "workspace:*"
   },
   "devDependencies": {
     "typescript": "6.0.3",

@@ -43,6 +43,31 @@
       "types": "./dist/mapping-runtime.d.ts",
       "import": "./dist/mapping-runtime.js",
       "default": "./dist/mapping-runtime.js"
+    },
+    "./preanalysis-runtime": {
+      "types": "./dist/preanalysis-runtime.d.ts",
+      "import": "./dist/preanalysis-runtime.js",
+      "default": "./dist/preanalysis-runtime.js"
+    },
+    "./glossary": {
+      "types": "./dist/glossary.d.ts",
+      "import": "./dist/glossary.js",
+      "default": "./dist/glossary.js"
+    },
+    "./inspection-client": {
+      "types": "./dist/inspection-client.d.ts",
+      "import": "./dist/inspection-client.js",
+      "default": "./dist/inspection-client.js"
+    },
+    "./inspection-panel": {
+      "types": "./dist/inspection-panel.d.ts",
+      "import": "./dist/inspection-panel.js",
+      "default": "./dist/inspection-panel.js"
+    },
+    "./inspection-strings": {
+      "types": "./dist/inspection-strings.d.ts",
+      "import": "./dist/inspection-strings.js",
+      "default": "./dist/inspection-strings.js"
     }
   },
   "scripts": {

@@ -135,7 +135,9 @@ export function extractElementMetadata(element: Element): ElementMetadata {
       } else if (node.nodeType === 1) {
         const child = node as Element;
         if (privateElement(child) || hidden(child)) continue;
-        const remaining = Math.max(0, 400 - visited - stack.length);
+        // Reserve visits for descendants; a wide sibling list must not exhaust
+        // the entire budget before any of its visible text can be read.
+        const remaining = Math.max(0, Math.floor((400 - visited - stack.length) / 2));
         const children: Node[] = [];
         if (child.localName === 'slot' && 'assignedNodes' in child) {
           const assigned = (child as HTMLSlotElement).assignedNodes({ flatten: true });

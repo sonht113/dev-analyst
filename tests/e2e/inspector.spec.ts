@@ -1,3 +1,4 @@
+import { clientEventSchema } from '@devanalyst/core';
 import { expect, test, type Page } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -110,6 +111,10 @@ test('Alt click pins, preserves host handlers and extracts bounded DOM evidence 
 }) => {
   await select(page, '#counter');
   await expect(page.locator('#counter')).toHaveText('Count: 0');
+  await expect.poll(async () => (await snapshot(page))?.inspection?.ai.error).toBe('AI_DISABLED');
+  await expect(panel(page).locator('[data-testid="analysis-status"]')).toContainText(
+    'AI is disabled',
+  );
   expect((await snapshot(page))?.metadata).toMatchObject({
     tag: 'button',
     text: 'Count: 0',
@@ -179,7 +184,16 @@ test('privacy excludes all control values, editable/private/hidden content, URLs
   await select(page, '#link');
   expect((await snapshot(page))?.metadata?.attributes).not.toHaveProperty('href');
   expect(sent.length).toBeGreaterThan(0);
-  for (const frame of sent) expect(JSON.parse(frame).type).toBe('route.changed');
+  for (const frame of sent) {
+    const message = clientEventSchema.parse(JSON.parse(frame));
+    expect([
+      'route.changed',
+      'page.index',
+      'page.priority',
+      'inspector.request',
+      'inspector.cancel',
+    ]).toContain(message.type);
+  }
   expect(sent.join('')).not.toMatch(/secret|表示テキスト|password/);
   await page.keyboard.press('Escape');
   await page.evaluate(() => {
@@ -451,6 +465,7 @@ test('bounds metadata and coalesces hover bursts; selected text remains copyable
   await expect.poll(async () => (await snapshot(page))?.metadata?.truncated).toBe(true);
   const metadata = (await snapshot(page))?.metadata;
   expect(metadata?.text.length).toBeLessThanOrEqual(2000);
+  expect(metadata?.text).toContain('日本語');
   expect(metadata?.japaneseText.length).toBeLessThanOrEqual(32);
   await page.locator('devanalyst-inspector #details').evaluate((node) => {
     const range = document.createRange();

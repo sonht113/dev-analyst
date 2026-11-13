@@ -1,5 +1,10 @@
+import type { PageElement, SourceModuleManifest } from '@devanalyst/core';
 import { performance } from 'node:perf_hooks';
-import { instrumentReactSource, type MappingDiagnostic } from '@devanalyst/analyzer';
+import {
+  instrumentReactSource,
+  type MappingDiagnostic,
+  type JSXInspectionOrigin,
+} from '@devanalyst/analyzer';
 import type { WorkspaceAccess } from './workspace.js';
 
 export interface SourceMappingDiagnostic {
@@ -24,9 +29,14 @@ export function createSourceMapping(
 ) {
   const diagnostics = new Map<string, SourceMappingDiagnostic>();
   let stopped = false;
+  const inspectionOrigins = new Map<string, readonly JSXInspectionOrigin[]>();
+  const manifests = new Map<string, SourceModuleManifest>();
   const revisions = new Map<string, { moduleId: string; revision: string }>();
-  function invalidate(file: string): void {
+  function invalidate(file: string, observedRevision?: string): void {
     const current = revisions.get(file);
+    if (observedRevision && current?.revision === observedRevision) return;
+    manifests.delete(file);
+    inspectionOrigins.delete(file);
     if (current && !stopped) onInvalidate({ ...current });
   }
   function save(value: SourceMappingDiagnostic): void {
@@ -36,12 +46,27 @@ export function createSourceMapping(
   }
   return {
     invalidate,
+    resolve(element: PageElement) {
+      const manifest = manifests.get(element.file);
+      return manifest?.revision === element.revision
+        ? manifest.sites.find(
+            (site) => site.id === element.elementId && site.tag.toLowerCase() === element.tag,
+          )
+        : undefined;
+    },
+    inspect(element: PageElement) {
+      return manifests.get(element.file)?.revision === element.revision
+        ? inspectionOrigins.get(element.file)?.find((origin) => origin.siteId === element.elementId)
+        : undefined;
+    },
     diagnostics: (): readonly SourceMappingDiagnostic[] =>
       structuredClone([...diagnostics.values()]),
     stop: () => {
       stopped = true;
       diagnostics.clear();
       revisions.clear();
+      manifests.clear();
+      inspectionOrigins.clear();
     },
     async transform(code: string, id: string) {
       if (stopped || !/\.[jt]sx$/.test(id) || id.includes('\0') || id.includes('?')) return null;
@@ -74,6 +99,20 @@ export function createSourceMapping(
         if (stopped) return null;
         const previous = revisions.get(file);
         if (previous && previous.revision !== result.manifest.revision) invalidate(file);
+        manifests.delete(file);
+        let count = [...manifests.values()].reduce(
+          (sum, manifest) => sum + manifest.sites.length,
+          0,
+        );
+        while (count + result.manifest.sites.length > 16384 && manifests.size) {
+          const oldest = manifests.keys().next().value;
+          if (!oldest) break;
+          count -= manifests.get(oldest)?.sites.length ?? 0;
+          manifests.delete(oldest);
+          inspectionOrigins.delete(oldest);
+        }
+        if (result.manifest.sites.length <= 16384) manifests.set(file, result.manifest);
+        inspectionOrigins.set(file, result.inspections);
         revisions.set(file, {
           moduleId: result.manifest.moduleId,
           revision: result.manifest.revision,

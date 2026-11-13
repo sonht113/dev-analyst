@@ -113,17 +113,22 @@ export function createMappingRegistry() {
     if (previous) previous.active = false;
     totalSites += value.sites.length - (previous?.manifest.sites.length ?? 0);
     modules.set(value.moduleId, module);
+    const invalidate = () => {
+      if (!module.active) return;
+      module.active = false;
+      // Demote analysis in the same HMR turn, before the next paint.
+      if (typeof window !== 'undefined')
+        window.dispatchEvent(new Event('devanalyst:mapping-invalidated'));
+    };
     return {
-      invalidate: () => {
-        module.active = false;
-      },
+      invalidate,
       invalidateSource(message: unknown) {
         if (
           record(message) &&
           message['moduleId'] === module.manifest.moduleId &&
           message['revision'] === module.manifest.revision
         )
-          module.active = false;
+          invalidate();
       },
       ref(index: number) {
         const site = module.manifest.sites[index];

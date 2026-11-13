@@ -8,6 +8,9 @@ import {
   DevAnalystError,
   PROTOCOL_VERSION,
   type BridgeOptions,
+  type ClientEvent,
+  type PageProgress,
+  type InspectorUpdate,
   type RoutePayload,
   type ServerEvent,
   type BridgeBootstrap,
@@ -20,6 +23,16 @@ export interface BridgeClient {
 }
 
 export type BridgeLifecycleEvent =
+  | {
+      readonly type: 'inspector';
+      readonly clientId: string;
+      readonly event: Extract<ClientEvent, { type: 'inspector.request' | 'inspector.cancel' }>;
+    }
+  | {
+      readonly type: 'page';
+      readonly clientId: string;
+      readonly event: Extract<ClientEvent, { type: 'page.index' | 'page.priority' }>;
+    }
   | { readonly type: 'connected' | 'disconnected'; readonly clientId: string }
   | { readonly type: 'route'; readonly clientId: string; readonly route: Readonly<RoutePayload> }
   | { readonly type: 'source'; readonly file: string; readonly kind: 'add' | 'change' | 'unlink' };
@@ -30,6 +43,8 @@ export interface LocalBridge {
   clients(): readonly BridgeClient[];
   sourceChanged(file: string, kind: 'add' | 'change' | 'unlink'): void;
   reportError(error: SerializedError): void;
+  progress(clientId: string, payload: PageProgress): void;
+  inspection(clientId: string, payload: InspectorUpdate): void;
   close(): Promise<void>;
 }
 
@@ -248,6 +263,25 @@ export async function startLocalBridge(options: {
           type: 'route.acknowledged',
           payload: { clientId: peer.id, route: parsed.data.payload },
         });
+      } else if (
+        parsed.data.type === 'inspector.request' ||
+        parsed.data.type === 'inspector.cancel'
+      ) {
+        if (
+          peer.route &&
+          (parsed.data.type === 'inspector.cancel' ||
+            (peer.route.pathname === parsed.data.payload.route.pathname &&
+              (peer.route.hashPath ?? null) === (parsed.data.payload.route.hashPath ?? null)))
+        )
+          options.onEvent({ type: 'inspector', clientId: peer.id, event: parsed.data });
+      } else if (parsed.data.type === 'page.index' || parsed.data.type === 'page.priority') {
+        if (
+          peer.route &&
+          (parsed.data.type === 'page.priority' ||
+            (parsed.data.payload.route.pathname === peer.route.pathname &&
+              (parsed.data.payload.route.hashPath ?? null) === (peer.route.hashPath ?? null)))
+        )
+          options.onEvent({ type: 'page', clientId: peer.id, event: parsed.data });
       } else {
         send(socket, {
           ...envelope(),
@@ -296,6 +330,15 @@ export async function startLocalBridge(options: {
       options.onEvent({ type: 'source', file, kind });
       for (const socket of peers.keys())
         send(socket, { ...envelope(), type: 'source.changed', payload: { file, kind } });
+    },
+    progress(clientId, payload) {
+      for (const [socket, peer] of peers)
+        if (peer.id === clientId) send(socket, { ...envelope(), type: 'page.progress', payload });
+    },
+    inspection(clientId, payload) {
+      for (const [socket, peer] of peers)
+        if (peer.id === clientId)
+          send(socket, { ...envelope(), type: 'inspector.update', payload });
     },
     reportError(error) {
       for (const socket of peers.keys())

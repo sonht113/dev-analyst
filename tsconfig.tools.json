@@ -14,12 +14,14 @@
     "tests/e2e/bridge.spec.ts",
     "tests/e2e/inspector.spec.ts",
     "tests/e2e/mapping.spec.ts",
+    "tests/e2e/preanalysis.spec.ts",
     "packages/core/**/*.test.ts",
     "packages/vite-plugin/**/*.test.ts",
     "packages/inspector/**/*.test.ts",
     "packages/analyzer/**/*.test.ts",
     "packages/ai/**/*.test.ts",
     "packages/cache/**/*.test.ts",
-    "packages/cli/**/*.test.ts"
+    "packages/cli/**/*.test.ts",
+    "tests/e2e/analysis-ui.spec.ts"
   ]
 }

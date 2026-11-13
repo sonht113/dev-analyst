@@ -112,6 +112,11 @@ export interface StaticAnalysisResult {
   readonly diagnostics: readonly AnalysisDiagnostic[];
   readonly selectedSubjects: readonly string[];
   readonly sourceHashes: Readonly<Record<string, string>>;
+  /** All authorized snapshots affecting analysis, including JSON config and malformed dependencies. */
+  readonly dependencyHashes?: Readonly<Record<string, string>>;
+  /** Authorized unresolved candidates whose later appearance changes module resolution. */
+  readonly missingDependencies?: readonly string[];
+  readonly sourceAliases?: Readonly<Record<string, string>>;
   readonly metrics: {
     readonly files: number;
     readonly bytes: number;

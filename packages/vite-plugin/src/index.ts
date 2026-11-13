@@ -1,5 +1,17 @@
+import { createInspectionService } from './inspection.js';
+import { createHash } from 'node:crypto';
+import {
+  createPageOrchestrator,
+  createWorkerAnalyzer,
+  type PageOrchestratorOptions,
+  type PageAnalysisSnapshot,
+  type StaticAnalyzerOptions,
+} from '@devanalyst/analyzer';
+import { createClaudeCodeProvider, type ClaudeCodeOptions } from '@devanalyst/ai';
+import type { CacheInspection, CacheIdentity } from '@devanalyst/cache';
+import { createViteAnalysisCache } from './cache.js';
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { resolve, sep, relative, isAbsolute } from 'node:path';
 import type { IncomingMessage } from 'node:http';
 import type { Plugin, ViteDevServer } from 'vite';
 import {
@@ -25,6 +37,17 @@ export type { BridgeClient, BridgeLifecycleEvent } from './bridge.js';
 
 export interface ViteIntegrationOptions {
   readonly enabled?: boolean;
+  readonly preanalysis?: {
+    readonly enabled?: boolean;
+    readonly limits?: PageOrchestratorOptions['limits'];
+    readonly analyzer?: Pick<
+      StaticAnalyzerOptions,
+      'aliases' | 'tsconfig' | 'compilerOptions' | 'limits'
+    >;
+    /** Additional explicit consent for automatic source transmission; config.ai must also be enabled. */
+    readonly backgroundAI?: boolean;
+    readonly claude?: Pick<ClaudeCodeOptions, 'executable' | 'model'>;
+  };
   readonly config?: DevAnalystConfigInput;
   readonly bridge?: BridgeOptionsInput;
   /** Observes validated metadata. Keep callbacks lightweight; exceptions are isolated. */
@@ -43,6 +66,12 @@ export interface DevAnalystPluginApi {
   readonly ready: Promise<{ readonly host: '127.0.0.1'; readonly port: number } | null>;
   getSnapshot(): DevAnalystPluginSnapshot;
   getMappingDiagnostics(): readonly SourceMappingDiagnostic[];
+  getPageAnalysis(clientId: string): PageAnalysisSnapshot | null;
+  inspectCache(): Promise<CacheInspection | null>;
+  clearCache(filter?: {
+    scope?: CacheIdentity['scope'];
+    kind?: CacheIdentity['kind'];
+  }): Promise<number>;
 }
 
 export interface DevAnalystPlugin extends Plugin {
@@ -71,6 +100,12 @@ interface Integration {
   readonly namespace: string;
   readonly ready: DevAnalystPluginApi['ready'];
   getSnapshot(): DevAnalystPluginSnapshot;
+  getPageAnalysis(clientId: string): PageAnalysisSnapshot | null;
+  inspectCache(): Promise<CacheInspection | null>;
+  clearCache(filter?: {
+    scope?: CacheIdentity['scope'];
+    kind?: CacheIdentity['kind'];
+  }): Promise<number>;
   close(): Promise<void>;
   transform: ReturnType<typeof createSourceMapping>['transform'];
   getMappingDiagnostics(): readonly SourceMappingDiagnostic[];
@@ -88,6 +123,9 @@ function configureIntegration(
   let disposed = false;
   let dispose: () => Promise<void> = async () => undefined;
   let namespace = '/__devanalyst/';
+  let inspection: ReturnType<typeof createInspectionService> | undefined = undefined;
+  let persistence: ReturnType<typeof createViteAnalysisCache> | undefined = undefined;
+  let orchestrator: ReturnType<typeof createPageOrchestrator> | undefined;
   const mapping: { service?: ReturnType<typeof createSourceMapping> } = {};
   let resolveReady: (value: { host: '127.0.0.1'; port: number } | null) => void = () => undefined;
   const ready: DevAnalystPluginApi['ready'] = new Promise((resolvePromise) => {
@@ -100,6 +138,14 @@ function configureIntegration(
     ready,
     transform: async (code, id) => mapping.service?.transform(code, id) ?? null,
     getMappingDiagnostics: () => mapping.service?.diagnostics() ?? [],
+    getPageAnalysis: (clientId) => orchestrator?.getSnapshot(clientId) ?? null,
+    inspectCache: () => persistence?.inspect() ?? Promise.resolve(null),
+    clearCache: async (filter) => {
+      const count = (await persistence?.clear(filter)) ?? 0;
+      orchestrator?.invalidate('*', true);
+      inspection?.invalidate('*');
+      return count;
+    },
     getSnapshot: () => ({
       state,
       port: bridge?.port ?? null,
@@ -149,6 +195,72 @@ function configureIntegration(
   let overflowReported = false;
   const changes = new Map<string, 'add' | 'change' | 'unlink'>();
   const emit = (event: BridgeLifecycleEvent): void => {
+    if (event.type === 'inspector') {
+      if (event.event.type === 'inspector.request') {
+        if (inspection) inspection.request(event.clientId, event.event.payload);
+        else
+          for (const lane of ['translation', 'analysis', 'ai'] as const)
+            bridge?.inspection(event.clientId, {
+              requestId: event.event.payload.requestId,
+              elementId: event.event.payload.element.elementId,
+              revision: event.event.payload.element.revision,
+              lane,
+              state: 'FAILED',
+              cache: 'miss',
+              completion: 'partial',
+              error: 'INVALID_CONFIG',
+              reset: true,
+              limited: false,
+              items: [],
+              observedAt: new Date().toISOString(),
+            });
+      } else inspection?.cancel(event.clientId, event.event.payload.requestId);
+    }
+    if (event.type === 'disconnected') {
+      orchestrator?.remove(event.clientId);
+      inspection?.cancel(event.clientId);
+    } else if (event.type === 'route') {
+      inspection?.route(event.clientId, event.route);
+      const previous = orchestrator?.getSnapshot(event.clientId);
+      if (
+        previous &&
+        (previous.route.pathname !== event.route.pathname ||
+          (previous.route.hashPath ?? null) !== (event.route.hashPath ?? null))
+      )
+        orchestrator?.remove(event.clientId);
+    } else if (event.type === 'page') {
+      const payload = event.event.payload;
+      if (event.event.type === 'page.index') {
+        const data = event.event.payload;
+        const elements = data.elements.filter((element) => mapping.service?.resolve(element));
+        orchestrator?.index(
+          event.clientId,
+          data.requestId,
+          data.route,
+          elements,
+          data.limited || elements.length !== data.elements.length,
+        );
+      } else {
+        const data = event.event.payload;
+        const previous = orchestrator?.getSnapshot(event.clientId);
+        if (previous?.requestId === payload.requestId && mapping.service?.resolve(data.element)) {
+          orchestrator?.index(
+            event.clientId,
+            data.requestId,
+            previous.route,
+            [data.element],
+            false,
+            data.priority,
+          );
+          orchestrator?.prioritize(
+            event.clientId,
+            data.requestId,
+            data.element.elementId,
+            data.priority,
+          );
+        }
+      }
+    }
     const observerFailed = (): void =>
       report(
         new DevAnalystError(
@@ -167,9 +279,155 @@ function configureIntegration(
     resolve(server.config.root, configuration.data.workspaceRoot),
     configuration.data.source,
   );
+  const cacheDirectory = resolve(
+    server.config.root,
+    configuration.data.workspaceRoot,
+    configuration.data.cache.directory,
+  );
+  const contains = (directory: string, path: string) => {
+    const value = relative(directory, path);
+    return value === '' || (!isAbsolute(value) && value !== '..' && !value.startsWith('..' + sep));
+  };
+  const publicDirectory = server.config.publicDir;
+  const outputDirectory = resolve(server.config.root, server.config.build.outDir);
+  const unsafeCacheDirectory =
+    Boolean(publicDirectory && contains(publicDirectory, cacheDirectory)) ||
+    contains(outputDirectory, cacheDirectory);
+  if (unsafeCacheDirectory && configuration.data.cache.enabled)
+    report(
+      new DevAnalystError(
+        'INVALID_CONFIG',
+        'Choose a cache directory outside Vite public and build output directories. Persistence is disabled.',
+      ),
+    );
+  persistence = createViteAnalysisCache({
+    workspaceRoot: resolve(server.config.root, configuration.data.workspaceRoot),
+    config: unsafeCacheDirectory
+      ? { ...configuration.data, cache: { ...configuration.data.cache, enabled: false } }
+      : configuration.data,
+    analyzer: options.preanalysis?.analyzer ?? {},
+    model: options.preanalysis?.claude?.model ?? 'sonnet',
+    enabledAI: options.preanalysis?.backgroundAI === true && configuration.data.ai.enabled,
+    report,
+  });
+  if (options.preanalysis?.enabled !== false) {
+    try {
+      const worker = createWorkerAnalyzer({
+        ...options.preanalysis?.analyzer,
+        workspaceRoot: resolve(server.config.root, configuration.data.workspaceRoot),
+        source: configuration.data.source,
+      });
+      const provider =
+        options.preanalysis?.backgroundAI === true && configuration.data.ai.enabled
+          ? createClaudeCodeProvider({
+              ...options.preanalysis?.claude,
+              workspaceRoot: resolve(server.config.root, configuration.data.workspaceRoot),
+              source: configuration.data.source,
+              ai: configuration.data.ai,
+            })
+          : null;
+      orchestrator = createPageOrchestrator({
+        ...(options.preanalysis?.limits ? { limits: options.preanalysis.limits } : {}),
+        analyze: worker.analyzeDetailed,
+        persistence: persistence.hooks,
+        validate: async (hashes, missing = [], aliases = {}) => {
+          const workspace = await access;
+          try {
+            for (const [file, hash] of Object.entries(hashes))
+              if (
+                createHash('sha256')
+                  .update(await workspace.readSource(file))
+                  .digest('hex') !== hash
+              )
+                return false;
+            for (const file of missing)
+              if (
+                await workspace.canonicalSourcePath(
+                  resolve(server.config.root, configuration.data.workspaceRoot, file),
+                )
+              )
+                return false;
+            for (const [alias, target] of Object.entries(aliases))
+              if (
+                (await workspace.canonicalSourcePath(
+                  resolve(server.config.root, configuration.data.workspaceRoot, alias),
+                )) !== target
+              )
+                return false;
+            return Object.keys(hashes).length > 0;
+          } catch {
+            return false;
+          }
+        },
+        ...(provider
+          ? ({
+              enrich: (result, signal) =>
+                provider.explain({
+                  requestId: result.requestId,
+                  evidence: result.findings
+                    .filter((finding) => finding.evidence !== null)
+                    .slice(0, 24),
+                  sourceHashes: result.sourceHashes,
+                  depth: configuration.data.ai.depth,
+                  signal,
+                }),
+            } satisfies Pick<PageOrchestratorOptions, 'enrich'>)
+          : {}),
+        onProgress: (clientId, page) => {
+          persistence?.index(clientId, page);
+          const statuses = page.items.map(
+            ({ elementId, revision, state, aiState, cache, error }) => ({
+              elementId,
+              revision,
+              state,
+              aiState,
+              cache,
+              error,
+            }),
+          );
+          for (let offset = 0; offset < Math.max(1, statuses.length); offset += 16)
+            bridge?.progress(clientId, {
+              requestId: page.requestId,
+              items: statuses.slice(offset, offset + 16),
+              total: page.total,
+              completed: page.completed,
+              limited: page.limited,
+            });
+        },
+      });
+    } catch {
+      report(
+        new DevAnalystError(
+          'INVALID_CONFIG',
+          'Page pre-analysis is unavailable. Check its resource limits and analyzer settings.',
+        ),
+      );
+    }
+  }
   mapping.service = createSourceMapping(access, `${namespace}mapping-runtime.js`, (data) => {
     if (!disposed) server.ws.send({ type: 'custom', event: 'devanalyst:source-invalidated', data });
   });
+  try {
+    inspection = createInspectionService({
+      workspaceRoot: resolve(server.config.root, configuration.data.workspaceRoot),
+      config: configuration.data,
+      access,
+      mapping: mapping.service,
+      persistence,
+      ...(orchestrator ? { orchestrator } : {}),
+      ...(options.preanalysis?.analyzer ? { analyzer: options.preanalysis.analyzer } : {}),
+      ...(options.preanalysis?.claude ? { claude: options.preanalysis.claude } : {}),
+      maxMessageBytes: settings.data.maxMessageBytes,
+      send: (client, payload) => bridge?.inspection(client, payload),
+    });
+  } catch {
+    report(
+      new DevAnalystError(
+        'INVALID_CONFIG',
+        'Inspector analysis is unavailable. Check analyzer and Claude CLI settings; local DOM inspection remains available.',
+      ),
+    );
+  }
   // Vite can configure the replacement server before closing the old one.
   // Bind only once this particular HTTP server starts listening.
   let releaseListening: () => void = () => undefined;
@@ -229,9 +487,31 @@ function configureIntegration(
     pending += 1;
     void access
       .then((workspace) => workspace.sourcePath(file, kind === 'unlink'))
-      .then((source) => {
+      .then(async (source) => {
         if (disposed || source === null) return;
-        mapping.service?.invalidate(source);
+        let observedRevision: string | undefined;
+        if (kind !== 'unlink') {
+          try {
+            observedRevision = createHash('sha256')
+              .update(await (await access).readSource(source))
+              .digest('hex');
+          } catch {
+            /* Invalid/unreadable source must still invalidate old evidence. */
+          }
+        }
+        if (disposed) return;
+        mapping.service?.invalidate(source, observedRevision);
+        inspection?.invalidate(source);
+        void persistence?.invalidate(
+          source,
+          observedRevision ?? null,
+          kind !== 'change' || source.endsWith('.json'),
+        );
+        orchestrator?.invalidate(
+          source,
+          kind !== 'change' || source.endsWith('.json'),
+          observedRevision,
+        );
         if (changes.size >= 256 && !changes.has(source)) {
           report(
             new DevAnalystError(
@@ -267,10 +547,39 @@ function configureIntegration(
     'client.js': '@devanalyst/inspector/runtime',
     'browser.js': '@devanalyst/inspector/browser',
     'metadata.js': '@devanalyst/inspector/metadata',
+    'inspection-client.js': '@devanalyst/inspector/inspection-client',
+    'inspection-panel.js': '@devanalyst/inspector/inspection-panel',
+    'inspection-strings.js': '@devanalyst/inspector/inspection-strings',
+    'glossary.js': '@devanalyst/inspector/glossary',
+    'preanalysis-runtime.js': '@devanalyst/inspector/preanalysis-runtime',
     'mapping-runtime.js': '@devanalyst/inspector/mapping-runtime',
   };
   server.middlewares.use((request, response, next) => {
     const url = new URL(request.url ?? '/', 'http://localhost');
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(url.pathname);
+    } catch {
+      response.writeHead(400);
+      response.end();
+      return;
+    }
+    const relativePath = decoded.startsWith(server.config.base)
+      ? decoded.slice(server.config.base.length)
+      : decoded.replace(/^\//, '');
+    const candidates = [
+      resolve(server.config.root, relativePath),
+      ...(publicDirectory ? [resolve(publicDirectory, relativePath)] : []),
+      ...(decoded.includes('/@fs/') ? [resolve(decoded.slice(decoded.indexOf('/@fs/') + 4))] : []),
+    ];
+    if (
+      candidates.some((candidate) => contains(cacheDirectory, candidate)) ||
+      decoded.includes('/' + configuration.data.cache.directory.replaceAll('\\', '/') + '/')
+    ) {
+      response.writeHead(403);
+      response.end();
+      return;
+    }
     if (!url.pathname.startsWith(namespace)) {
       next();
       return;
@@ -306,7 +615,7 @@ function configureIntegration(
           response.setHeader('Content-Type', 'text/javascript');
           const bootstrapUrl = JSON.stringify(`${namespace}bootstrap`).replaceAll('<', '\\u003c');
           response.end(
-            `${code.replace(/\/\/# sourceMappingURL=.*$/m, '')}${name === 'client.js' ? `\nstartBridgeRuntime({bootstrapUrl:${bootstrapUrl},theme:${JSON.stringify(configuration.data.inspector.theme)}});` : ''}`,
+            `${code.replace(/\/\/# sourceMappingURL=.*$/m, '')}${name === 'client.js' ? `\nstartBridgeRuntime({bootstrapUrl:${bootstrapUrl},theme:${JSON.stringify(configuration.data.inspector.theme)},language:${JSON.stringify(configuration.data.inspector.language)},preanalysis:${options.preanalysis?.enabled !== false},maxMessageBytes:${settings.data.maxMessageBytes}});` : ''}`,
           );
         })
         .catch(() => {
@@ -338,8 +647,11 @@ function configureIntegration(
       clearTimeout(flushTimer);
       changes.clear();
       mapping.service?.stop();
+      const stoppedInspection = inspection?.stop();
+      const stoppedAnalysis = orchestrator?.stop();
       await startup;
-      await bridge?.close();
+      await Promise.all([stoppedInspection, stoppedAnalysis, bridge?.close()]);
+      await persistence?.close();
     })();
     return closing;
   };
@@ -393,6 +705,9 @@ export function devanalyst(options: ViteIntegrationOptions = {}): DevAnalystPlug
         return current?.ready ?? firstReady;
       },
       getMappingDiagnostics: () => current?.getMappingDiagnostics() ?? [],
+      getPageAnalysis: (clientId) => current?.getPageAnalysis(clientId) ?? null,
+      inspectCache: () => current?.inspectCache() ?? Promise.resolve(null),
+      clearCache: (filter) => current?.clearCache(filter) ?? Promise.resolve(0),
       getSnapshot: () =>
         current?.getSnapshot() ?? { state: 'inactive', port: null, clients: [], error: null },
     },

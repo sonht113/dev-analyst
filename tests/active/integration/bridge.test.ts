@@ -1,4 +1,5 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { instrumentReactSource } from '@devanalyst/analyzer';
 import { createServer as createHttpServer, type Server } from 'node:http';
 import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -47,7 +48,7 @@ function origin(server: ViteDevServer): string {
 
 async function start(
   options: ViteIntegrationOptions = {},
-  extra: { base?: string; mode?: string } = {},
+  extra: { base?: string; mode?: string; resolve?: { alias: Record<string, string> } } = {},
 ): Promise<{
   root: string;
   server: ViteDevServer;
@@ -138,6 +139,276 @@ async function reserve(): Promise<{ http: Server; port: number }> {
 }
 
 describe('real Vite and authenticated bridge', () => {
+  it('admits only server-registered JSX sites for the active route, streams progress and removes disconnected pages', async () => {
+    const { server, root, plugin } = await start(
+      {},
+      {
+        resolve: {
+          alias: {
+            'react/jsx-dev-runtime': join(
+              process.cwd(),
+              'apps/playground-react/node_modules/react/jsx-dev-runtime.js',
+            ),
+          },
+        },
+      },
+    );
+    const source = 'export function Visible(){return <button>Safe</button>}';
+    await writeFile(join(root, 'src/Visible.tsx'), source);
+    await server.transformRequest('/src/Visible.tsx');
+    const { manifest } = instrumentReactSource(
+      source,
+      'src/Visible.tsx',
+      '/__devanalyst/mapping-runtime.js',
+    );
+    const site = manifest.sites[0];
+    if (!site) throw new Error('Missing source site');
+    const data = await bootstrap(server);
+    const connection = connect(data, origin(server));
+    await connection.ready;
+    await expect
+      .poll(() => connection.messages.find((message) => message.type === 'bridge.ready'))
+      .toBeDefined();
+    const ready = connection.messages.find((message) => message.type === 'bridge.ready');
+    if (ready?.type !== 'bridge.ready') throw new Error('Missing bridge client');
+    const client = ready.payload.clientId;
+    const send = (type: string, payload: unknown) =>
+      connection.socket.send(
+        JSON.stringify({
+          version: 1,
+          id: randomUUID(),
+          timestamp: new Date().toISOString(),
+          type,
+          payload,
+        }),
+      );
+    send('route.changed', { pathname: '/orders/123' });
+    const requestId = randomUUID();
+    const element = {
+      elementId: site.id,
+      file: site.source.file,
+      revision: manifest.revision,
+      tag: site.tag,
+      kind: 'button',
+    };
+    send('page.index', {
+      requestId,
+      route: { pathname: '/orders/123' },
+      elements: [element, { ...element, elementId: 'f'.repeat(64), file: 'src/main.js' }],
+      limited: false,
+    });
+    await expect.poll(() => plugin.api.getPageAnalysis(client)).toMatchObject({ completed: 1 });
+    expect(plugin.api.getPageAnalysis(client)).toMatchObject({ total: 1, limited: true });
+    expect(connection.messages.some((message) => message.type === 'page.progress')).toBe(true);
+    send('page.index', {
+      requestId: randomUUID(),
+      route: { pathname: '/obsolete' },
+      elements: [element],
+      limited: false,
+    });
+    send('route.changed', { pathname: '/other' });
+    await expect.poll(() => plugin.api.getPageAnalysis(client)).toBeNull();
+    send('page.index', {
+      requestId: randomUUID(),
+      route: { pathname: '/other' },
+      elements: [element],
+      limited: false,
+    });
+    await expect.poll(() => plugin.api.getPageAnalysis(client)?.items[0]?.cache).toBe('fresh');
+    connection.socket.close();
+    await expect.poll(() => plugin.api.getPageAnalysis(client)).toBeNull();
+  });
+  it('does not serve SQLite files through root, encoded, or @fs URLs', async () => {
+    const { server, plugin, root } = await start();
+    await expect
+      .poll(async () => Boolean((await plugin.api.inspectCache())?.persistent))
+      .toBe(true);
+    for (const path of [
+      '/.cache/devanalyst/analysis.sqlite',
+      '/.cache/devanalyst/%61nalysis.sqlite',
+      `/@fs${join(root, '.cache/devanalyst/analysis.sqlite')}`,
+    ])
+      expect((await fetch(origin(server) + path)).status).toBe(403);
+  });
+  it('disables persistence configured inside Vite public output', async () => {
+    const { server, plugin } = await start({ config: { cache: { directory: 'public/cache' } } });
+    expect(await plugin.api.inspectCache()).toBeNull();
+    expect(plugin.api.getSnapshot().error?.code).toBe('INVALID_CONFIG');
+    expect((await fetch(origin(server) + '/public/cache/analysis.sqlite')).status).toBe(403);
+  });
+  it('can disable automatic pre-analysis without disabling the inspector bridge', async () => {
+    const { server, plugin } = await start({ preanalysis: { enabled: false } });
+    expect(await (await fetch(`${origin(server)}/__devanalyst/client.js`)).text()).toContain(
+      'preanalysis:false',
+    );
+    expect(plugin.api.getPageAnalysis('unknown')).toBeNull();
+    expect(plugin.api.getSnapshot().state).toBe('ready');
+  });
+  it('keeps the host and bridge available when selected AI settings are invalid', async () => {
+    const { server, plugin } = await start({
+      config: { ai: { enabled: true, permittedPaths: ['src/**'] } },
+      preanalysis: { enabled: false, claude: { model: '' } },
+    });
+    expect(plugin.api.getSnapshot()).toMatchObject({
+      state: 'ready',
+      error: { code: 'INVALID_CONFIG' },
+    });
+    expect((await fetch(origin(server))).status).toBe(200);
+    const connection = connect(await bootstrap(server), origin(server));
+    await connection.ready;
+    const send = (type: string, payload: unknown) =>
+      connection.socket.send(
+        JSON.stringify({
+          version: 1,
+          id: randomUUID(),
+          timestamp: new Date().toISOString(),
+          type,
+          payload,
+        }),
+      );
+    send('route.changed', { pathname: '/' });
+    const requestId = randomUUID();
+    send('inspector.request', {
+      requestId,
+      pageId: randomUUID(),
+      route: { pathname: '/' },
+      element: {
+        elementId: 'a'.repeat(64),
+        revision: 'b'.repeat(64),
+        file: 'src/App.tsx',
+        tag: 'button',
+        kind: 'button',
+      },
+      textDigest: null,
+      mode: 'expanded',
+    });
+    await expect
+      .poll(
+        () =>
+          connection.messages.filter(
+            (message) =>
+              message.type === 'inspector.update' &&
+              message.payload.requestId === requestId &&
+              message.payload.state === 'FAILED' &&
+              message.payload.error === 'INVALID_CONFIG',
+          ).length,
+      )
+      .toBe(3);
+    connection.socket.close();
+  });
+  it('serves scoped inspector results with automatic pre-analysis disabled and rejects forged origins and runtime text', async () => {
+    const { server, root } = await start(
+      { preanalysis: { enabled: false } },
+      {
+        resolve: {
+          alias: {
+            'react/jsx-dev-runtime': join(
+              process.cwd(),
+              'apps/playground-react/node_modules/react/jsx-dev-runtime.js',
+            ),
+          },
+        },
+      },
+    );
+    const code =
+      'export function Save(){return <button onClick={()=>fetch("/save")}>保存</button>}';
+    const connection = connect(await bootstrap(server), origin(server));
+    await connection.ready;
+    await writeFile(join(root, 'src/Save.tsx'), code);
+    await expect
+      .poll(
+        () =>
+          connection.messages.some(
+            (message) =>
+              message.type === 'source.changed' && message.payload.file === 'src/Save.tsx',
+          ),
+        { timeout: 3000 },
+      )
+      .toBe(true);
+    await server.transformRequest('/src/Save.tsx');
+    const { manifest } = instrumentReactSource(
+      code,
+      'src/Save.tsx',
+      '/__devanalyst/mapping-runtime.js',
+    );
+    const site = manifest.sites[0];
+    if (!site) throw new Error('Missing source origin');
+
+    const send = (type: string, payload: unknown) =>
+      connection.socket.send(
+        JSON.stringify({
+          version: 1,
+          id: randomUUID(),
+          timestamp: new Date().toISOString(),
+          type,
+          payload,
+        }),
+      );
+    send('route.changed', { pathname: '/save' });
+    const request = {
+      requestId: randomUUID(),
+      pageId: randomUUID(),
+      route: { pathname: '/save' },
+      element: {
+        elementId: site.id,
+        file: site.source.file,
+        revision: manifest.revision,
+        tag: site.tag,
+        kind: 'button',
+      },
+      textDigest: createHash('sha256').update('保存').digest('hex'),
+      mode: 'expanded',
+    };
+    send('inspector.request', request);
+    await expect
+      .poll(
+        () =>
+          connection.messages.some(
+            (message) =>
+              message.type === 'inspector.update' &&
+              message.payload.requestId === request.requestId &&
+              message.payload.lane === 'analysis' &&
+              message.payload.state === 'READY',
+          ),
+        { timeout: 8000 },
+      )
+      .toBe(true);
+    expect(
+      connection.messages.some(
+        (message) =>
+          message.type === 'inspector.update' &&
+          message.payload.lane === 'translation' &&
+          message.payload.items.some((item) => item.description === 'Lưu'),
+      ),
+    ).toBe(true);
+    expect(
+      connection.messages.some(
+        (message) =>
+          message.type === 'inspector.update' &&
+          message.payload.lane === 'ai' &&
+          message.payload.error === 'AI_DISABLED',
+      ),
+    ).toBe(true);
+    const forged = {
+      ...request,
+      requestId: randomUUID(),
+      element: { ...request.element, elementId: 'f'.repeat(64) },
+    };
+    send('inspector.request', forged);
+    await expect
+      .poll(() =>
+        connection.messages.some(
+          (message) =>
+            message.type === 'inspector.update' &&
+            message.payload.requestId === forged.requestId &&
+            message.payload.error === 'SOURCE_MAPPING_UNAVAILABLE',
+        ),
+      )
+      .toBe(true);
+    const closed = new Promise<number>((resolve) => connection.socket.once('close', resolve));
+    send('inspector.request', { ...request, text: 'PRIVATE_RUNTIME_TEXT' });
+    expect(await closed).toBe(1008);
+  });
   it('injects the runtime without exposing credentials in HTML or runtime code', async () => {
     const { server, plugin } = await start();
     const data = await bootstrap(server);
@@ -149,7 +420,7 @@ describe('real Vite and authenticated bridge', () => {
     expect(code).not.toContain(data.token);
     expect(code).not.toContain('node:');
     expect(code).toContain("from './browser.js'");
-    for (const asset of ['browser.js', 'metadata.js']) {
+    for (const asset of ['browser.js', 'metadata.js', 'preanalysis-runtime.js']) {
       const response = await fetch(`${origin(server)}/__devanalyst/${asset}`);
       expect(response.status).toBe(200);
       expect(response.headers.get('cache-control')).toBe('no-store');

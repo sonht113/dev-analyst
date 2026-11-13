@@ -1,8 +1,16 @@
+import { createInspectionPanel } from './inspection-panel.js';
+import type { InspectionSnapshot } from './inspection-client.js';
+import { label, type DisplayLanguage } from './inspection-strings.js';
 import { resolveElementSource } from './mapping-runtime.js';
 import { extractElementMetadata, type ElementMetadata } from './metadata.js';
 
 export interface ElementInspectorOptions {
   readonly theme?: 'system' | 'light' | 'dark';
+  readonly language?: DisplayLanguage;
+  readonly onInspection?: (metadata: ElementMetadata, expanded: boolean) => void;
+  readonly getInspection?: () => InspectionSnapshot | null;
+  readonly onClose?: () => void;
+  readonly onPriority?: (element: Element, priority: 'hovered' | 'selected') => void;
 }
 export interface ElementInspectorHandle {
   stop(): void;
@@ -12,6 +20,7 @@ export interface ElementInspectorHandle {
     readonly pinned: boolean;
     readonly metadata: ElementMetadata | null;
     readonly error: string | null;
+    readonly inspection: InspectionSnapshot | null;
   };
 }
 declare global {
@@ -20,7 +29,7 @@ declare global {
   }
 }
 
-/** Development-only DOM inspector. Metadata stays in this browser; no transport or AI calls. */
+/** Development-only DOM inspector; delegates source analysis through explicit callbacks. */
 export function startElementInspector(
   options: ElementInspectorOptions = {},
 ): ElementInspectorHandle {
@@ -41,10 +50,24 @@ export function startElementInspector(
     @media(prefers-color-scheme:dark){#surface[data-theme=system]{--bg:#192335;--fg:#f2f5ff}}
     #launch{position:fixed;bottom:12px;right:12px;pointer-events:auto;background:var(--bg);color:var(--fg)}
     #panel,#menu{position:fixed;pointer-events:auto;background:var(--bg);color:var(--fg);border:1px solid #72809a;border-radius:8px;padding:12px;box-shadow:0 5px 24px #0004;max-height: min(65vh,560px);overflow:auto;width:340px;max-width:calc(100vw - 16px)}
+    #panel.expanded{width:520px;max-height:min(78vh,760px)}
+    #panel{border-radius:12px;scrollbar-width:thin;overscroll-behavior:contain}
+    #panel h3{font-size:12px;letter-spacing:.02em;margin:0 0 8px;color:var(--fg)}
+    #panel p{margin:6px 0;overflow-wrap:anywhere;white-space:pre-wrap} #panel select,#panel input{font:inherit;background:var(--bg);color:var(--fg);border:1px solid #72809a;border-radius:5px;padding:6px;min-width:0}
+    #panel a{color:#2563eb;overflow-wrap:anywhere;cursor:pointer} #surface[data-theme=dark] #panel a{color:#9fbeff}
+    .inspection-controls,.inspection-copy,.inspection-filters{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.inspection-filters input{flex:1;width:100%}
+    .translation-card,.finding-group{border-top:1px solid #8190a555;padding:12px 0 4px}.vietnamese{border-left:3px solid #14b8a6;padding-left:10px}
+    .confidence{display:inline-block;border:1px solid currentColor;border-radius:20px;padding:1px 6px;margin:4px;font-size:10px;font-weight:650}.verified{color:#047857}.inferred{color:#a16207}.unknown{color:#64748b}
+    .finding{padding:8px;border:1px solid #8190a555;border-radius:7px;margin:8px 0;overflow-wrap:anywhere}.finding-time,.cache-chip,.source-notice,.empty-evidence{font-size:11px;opacity:.85}
+    .source-code{font:11px/1.6 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#8190a515;padding:8px;max-height:180px;overflow:auto;border-radius:5px}.call-trace{padding-left:22px;margin:6px 0}.call-trace li{padding:3px 0}
+    .advanced-metadata summary{cursor:pointer;padding:8px 0}.advanced-metadata pre{max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px}
+    @media(max-width:480px){#panel,#panel.expanded{width:calc(100vw - 16px);max-height:72vh}.inspection-controls select{max-width:45%}}
+    #panel.passive select,#panel.passive input,#panel.passive a{display:none}
     #panel.passive{pointer-events:none} #panel.passive button{display:none}
     #menu{width:210px;display:grid;gap:6px} #heading{font-weight:700;margin:0 0 6px} #details{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0;max-height:280px;overflow:auto}
     #actions{display:flex;gap:6px;flex-wrap:wrap} #status,#hint{font-size:12px} .box{position:fixed;border:2px solid #2563eb;background:#2563eb18;pointer-events:none}
-    @media(prefers-reduced-motion:no-preference){button{transition:background-color .1s}}
+    #surface[data-theme=dark] .verified{color:#6ee7b7} #surface[data-theme=dark] .inferred{color:#fde68a} #surface[data-theme=dark] .unknown{color:#cbd5e1}
+    @media(prefers-color-scheme:dark){#surface[data-theme=system] .verified{color:#6ee7b7} #surface[data-theme=system] .inferred{color:#fde68a} #surface[data-theme=system] .unknown{color:#cbd5e1}}
   `;
   shadow.append(style);
   const surface = document.createElement('div');
@@ -91,10 +114,10 @@ export function startElementInspector(
     render();
   });
   pin.setAttribute('aria-pressed', 'false');
-  button('Copy', actions, () => {
+  const copyAction = button('Copy', actions, () => {
     void copy();
   });
-  button('Close', actions, () => {
+  const closeAction = button('Close', actions, () => {
     setInspecting(false);
     restoreFocus();
   });
@@ -102,28 +125,33 @@ export function startElementInspector(
   menu.hidden = true;
   menu.setAttribute('role', 'menu');
   menu.setAttribute('aria-label', 'DevAnalyst inspection');
-  button('Inspect element', menu, () => {
+  const inspectAction = button('Inspect element', menu, () => {
     menu.hidden = true;
     pinned = true;
     detailed = true;
     refreshMetadata();
     render();
     pin.focus();
-  }).setAttribute('role', 'menuitem');
-  button('Copy DOM metadata', menu, () => {
+  });
+  inspectAction.setAttribute('role', 'menuitem');
+  const copyDOMAction = button('Copy DOM metadata', menu, () => {
     menu.hidden = true;
     void copy();
-  }).setAttribute('role', 'menuitem');
-  button('Close menu', menu, () => {
+  });
+  copyDOMAction.setAttribute('role', 'menuitem');
+  const closeMenuAction = button('Close menu', menu, () => {
     menu.hidden = true;
     restoreFocus();
-  }).setAttribute('role', 'menuitem');
+  });
+  closeMenuAction.setAttribute('role', 'menuitem');
   document.documentElement.append(host);
 
   let disposed = false;
   let inspecting = false;
   let pinned = false;
   let detailed = false;
+  let explicitlySelected = false;
+  let pointerSelection = false;
   let selected: Element | null = null;
   let candidate: Element | null = null;
   let metadata: ElementMetadata | null = null;
@@ -139,7 +167,66 @@ export function startElementInspector(
   const roots = new Map<Node, MutationObserver>();
   const frames = new Map<HTMLIFrameElement, () => void>();
   const observer = new ResizeObserver(() => schedule());
+  let displayLanguage = options.language ?? 'en';
+  let displayTheme = options.theme ?? 'system';
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem('devanalyst.display.v1') ?? 'null');
+    if (
+      stored &&
+      typeof stored === 'object' &&
+      'language' in stored &&
+      ['en', 'vi', 'ja'].includes(String(stored.language))
+    ) {
+      if (stored.language === 'en' || stored.language === 'vi' || stored.language === 'ja')
+        displayLanguage = stored.language;
+    }
+    if (
+      stored &&
+      typeof stored === 'object' &&
+      'theme' in stored &&
+      (stored.theme === 'system' || stored.theme === 'light' || stored.theme === 'dark')
+    )
+      displayTheme = stored.theme;
+  } catch {
+    notice = 'Display preferences use session memory.';
+  }
+  surface.dataset['theme'] = displayTheme;
+  const content = createInspectionPanel(panel, details, {
+    language: displayLanguage,
+    theme: displayTheme,
+    mode: () => {
+      detailed = !detailed;
+      pinned = true;
+      explicitlySelected = detailed;
+      render();
+    },
+    preferences: (language, theme) => {
+      displayLanguage = language;
+      displayTheme = theme;
+      surface.dataset['theme'] = theme;
+      schedule();
+      try {
+        localStorage.setItem('devanalyst.display.v1', JSON.stringify({ language, theme }));
+      } catch {
+        notice = 'Display preferences use session memory.';
+      }
+    },
+    copy: (value) => {
+      void copyValue(value);
+    },
+  });
 
+  function chrome(): void {
+    text(launch, label(displayLanguage, inspecting ? 'inspecting' : 'inspect'));
+    text(pin, label(displayLanguage, pinned ? 'unpin' : 'pin'));
+    text(copyAction, label(displayLanguage, 'copyMetadata'));
+    text(closeAction, label(displayLanguage, 'close'));
+    text(inspectAction, label(displayLanguage, 'inspectElement'));
+    text(copyDOMAction, label(displayLanguage, 'copyDOM'));
+    text(closeMenuAction, label(displayLanguage, 'closeMenu'));
+    panel.setAttribute('aria-label', label(displayLanguage, 'inspector'));
+  }
+  chrome();
   function restoreFocus(): void {
     if (
       previousFocus?.isConnected &&
@@ -150,6 +237,9 @@ export function startElementInspector(
     previousFocus = null;
   }
   function close(): void {
+    options.onClose?.();
+    explicitlySelected = false;
+    pointerSelection = false;
     selected = null;
     candidate = null;
     lastPoint = null;
@@ -169,7 +259,7 @@ export function startElementInspector(
     if (disposed) return;
     inspecting = enabled;
     launch.setAttribute('aria-pressed', String(enabled));
-    launch.textContent = enabled ? 'DevAnalyst · Inspecting (Esc)' : 'DevAnalyst · Inspect';
+    chrome();
     if (!enabled) close();
   }
   launch.addEventListener('click', () => setInspecting(!inspecting));
@@ -190,8 +280,19 @@ export function startElementInspector(
     }
     return element === host || host.contains(element) ? null : element;
   }
-  function select(element: Element | null, full: boolean): void {
+  function select(
+    element: Element | null,
+    full: boolean,
+    priority: 'hovered' | 'selected' = 'selected',
+  ): void {
     if (!element || element === host || disposed) return;
+    try {
+      options.onPriority?.(element, priority);
+    } catch {
+      error = 'Page analysis priority unavailable.';
+    }
+    if (priority === 'selected') explicitlySelected = true;
+    else if (element !== selected) explicitlySelected = false;
     if (element === selected && full === detailed) return;
     selected = element;
     detailed = full;
@@ -225,10 +326,10 @@ export function startElementInspector(
   function bridgeStatus(): string {
     const snapshot = window.__DEVANALYST_BRIDGE__?.getSnapshot();
     if (snapshot?.lastError && snapshot.status === 'connected')
-      return 'Bridge error · DOM inspection remains local';
+      return 'Connected · Bridge error · Local runtime values remain private';
     if (snapshot?.status === 'connecting') return 'Connecting · DOM inspection remains local';
     if (snapshot?.status !== 'connected') return 'Disconnected · DOM inspection remains local';
-    return 'Connected · Local DOM only';
+    return 'Connected · Source-backed inspection';
   }
   function rects(element: Element): { x: number; y: number; width: number; height: number }[] {
     const fragments = element.getClientRects();
@@ -267,6 +368,7 @@ export function startElementInspector(
   }
   function render(): void {
     if (!selected) return;
+    chrome();
     if (!selected.isConnected) {
       close();
       return;
@@ -275,7 +377,10 @@ export function startElementInspector(
     panel.classList.toggle('passive', !detailed && !pinned);
     panel.setAttribute('role', detailed || pinned ? 'region' : 'tooltip');
     details.tabIndex = detailed || pinned ? 0 : -1;
-    text(heading, `<${selected.localName}>${pinned ? ' · Pinned' : ''}`);
+    text(
+      heading,
+      `<${selected.localName}>${pinned ? ' · ' + label(displayLanguage, 'pinned') : ''}`,
+    );
     const mapping = resolveElementSource(selected);
     text(
       hint,
@@ -292,17 +397,35 @@ export function startElementInspector(
     ) {
       metadata = { ...metadata, mapping, source: mapping.source, sourceStatus: mapping.status };
     }
-    text(status, error ?? (notice || `${metadata ? '' : 'Reading DOM… · '}${bridgeStatus()}`));
-    pin.textContent = pinned ? 'Unpin' : 'Pin';
+    const analysis = window.__DEVANALYST_BRIDGE__?.getSnapshot().pageAnalysis;
+    const item =
+      mapping.status === 'VERIFIED'
+        ? analysis?.items.find(
+            (entry) => entry.elementId === mapping.elementId && entry.revision === mapping.revision,
+          )
+        : null;
+    const progress = analysis
+      ? ` · Page ${analysis.completed}/${analysis.total}${analysis.limited ? ' · Limited' : ''}`
+      : '';
+    text(
+      status,
+      error ??
+        (notice ||
+          `${metadata ? '' : 'Reading DOM… · '}${bridgeStatus()}${item ? ` · AST ${item.state} · ${item.cache}` : ''}${progress}`),
+    );
     pin.setAttribute('aria-pressed', String(pinned));
     text(
       details,
       metadata
-        ? detailed || pinned
-          ? JSON.stringify(metadata, null, 2)
-          : `${metadata.accessibleLabel || metadata.text || (metadata.redacted ? 'Private content omitted' : 'No visible text')}\nAlt+Click to inspect · Alt+Right-click for actions`
-        : 'Loading element metadata…',
+        ? metadata.redacted
+          ? label(displayLanguage, 'private')
+          : metadata.text || metadata.accessibleLabel || label(displayLanguage, 'noText')
+        : label(displayLanguage, 'loading'),
     );
+    details.lang = metadata?.japaneseText.length ? 'ja' : 'und';
+    if (metadata) options.onInspection?.(metadata, explicitlySelected && detailed);
+    content.update(metadata, options.getInspection?.() ?? null, detailed, detailed || pinned);
+    panel.classList.toggle('expanded', detailed);
     const bounds = rects(selected);
     boxes.replaceChildren(
       ...bounds.map((rect) => {
@@ -314,6 +437,16 @@ export function startElementInspector(
     );
     const first = bounds[0];
     if (first) position(panel, first.x, first.y + first.height + 8);
+  }
+  async function copyValue(value: string): Promise<void> {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      notice = label(displayLanguage, 'copied');
+    } catch {
+      error = label(displayLanguage, 'copyFailed');
+    }
+    if (!disposed) render();
   }
   async function copy(): Promise<void> {
     refreshMetadata();
@@ -333,7 +466,7 @@ export function startElementInspector(
       try {
         if (!pinned && menu.hidden && lastPoint)
           candidate = hit(lastPoint.doc, lastPoint.x, lastPoint.y);
-        if (!pinned && menu.hidden && candidate) select(candidate, detailed);
+        if (!pinned && menu.hidden && candidate) select(candidate, detailed, 'hovered');
         render();
       } catch {
         error = 'Element geometry unavailable. Select the element again.';
@@ -352,17 +485,27 @@ export function startElementInspector(
     schedule();
   }
   function pointerDown(event: PointerEvent): void {
+    pointerSelection = false;
     if (owned(event) || (!inspecting && !event.altKey) || event.button !== 0) return;
     const element = target(event);
     if (!element) return;
     event.preventDefault();
     event.stopImmediatePropagation();
+    pointerSelection = true;
     previousFocus = element.ownerDocument.activeElement;
     pinned = true;
     select(element, true);
     pin.focus({ preventScroll: true });
   }
   function click(event: MouseEvent): void {
+    // Opening the panel can move the mouse-up hit target. Consume the click
+    // paired with our pointer-down instead of selecting its common ancestor.
+    if (pointerSelection) {
+      pointerSelection = false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
     if (owned(event)) return;
     if (!inspecting && !event.altKey) {
       if (!pinned) close();
@@ -583,10 +726,16 @@ export function startElementInspector(
     'pointerup',
     'keydown',
     'keyup',
+    'input',
+    'change',
+    'focusin',
+    'focusout',
+    'wheel',
   ]) {
     cleanups.push(listen(shadow, type, (event) => event.stopPropagation(), false));
   }
   cleanups.push(listen(window, 'devanalyst:bridge', schedule));
+  cleanups.push(listen(window, 'devanalyst:inspection', schedule));
   cleanups.push(listen(window, 'pagehide', () => close()));
   // A low-frequency geometry check covers CSS animation/transforms without scanning the DOM.
   const geometryTimer = setInterval(() => {
@@ -599,6 +748,7 @@ export function startElementInspector(
       return {
         inspecting,
         pinned,
+        inspection: options.getInspection?.() ?? null,
         metadata:
           metadata && mapping
             ? structuredClone({

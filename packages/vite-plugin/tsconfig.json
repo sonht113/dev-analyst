@@ -17,6 +17,12 @@
     },
     {
       "path": "../analyzer"
+    },
+    {
+      "path": "../ai"
+    },
+    {
+      "path": "../cache"
     }
   ]
 }

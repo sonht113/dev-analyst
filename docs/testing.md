@@ -65,9 +65,29 @@ Run lint after transient fixture suites finish; a concurrently removed fixture c
 
 `tests/active/integration/ai.test.ts` uses the public analyzer and AI packages, actual React source, fresh AST findings/hashes and actual process transport to a mock CLI. It verifies rendering-guard and call-relation context, source-backed citations, confidence downgrading and unchanged source bytes. Production tests check provider markers remain absent from the real React bundle. The native installed CLI and the documented readiness API are checked separately; successful live inference depends on actual CLI authentication/model entitlement. See [Phase 06 validation](phase-06-validation.md) and [ADR 0008](adr/0008-claude-code-provider.md).
 
+## Phase 07 coverage
+
+Queue tests in `packages/analyzer/src/preanalysis.test.ts` check priority ordering, module/cross-page deduplication, last-subscriber and rapid-navigation cancellation, dependency refresh, stale and late-result rejection, AST-before-AI, AI cancellation, capacity admission, memory/deadline limits and retry suppression. Core tests reject private fields, unbounded batches and inconsistent statuses.
+
+`tests/active/integration/preanalysis.test.ts` uses real worker threads and guarded workspace sources to verify component/dependency indexes, source-backed API findings, hash reuse/refresh, worker cancellation and parent event-loop progress. Authenticated bridge integration rejects forged/unregistered sites and obsolete routes, streams progress and cleans disconnected pages. Production checks forbid pre-analysis runtime/worker/queue markers.
+
+`tests/e2e/preanalysis.spec.ts` uses actual React/Vite/Chromium for automatic collection, button/link/form/menu/tab metadata, private exclusions, repeated shared components, lazy components, dynamic/hash routes, cache reuse, selected uncached priority under a full queue, HMR/state preservation and frame observations. Network traces remain disabled; timing attachments contain only numeric frame observations. See [Phase 07 validation](phase-07-validation.md) for executed results and limitations.
+
+## Phase 08 coverage
+
+Cache unit tests use real SQLite files/workers for restart persistence, page/component/element and translation separation, model/schema/route/runtime key isolation, dependency/missing-file/alias invalidation, stale confidence, generation-checked concurrency, populated transactional migration, malformed/future/unsafe databases, secret exclusions, byte/entry/TTL eviction, row corruption, lock waits and request bounds. Queue tests keep stale data out of current results and preserve fresh analysis when cache operations fail.
+
+`tests/active/integration/cache.test.ts` drives the actual guarded analyzer, SQLite workers and a real subprocess using the existing mocked Claude CLI fixture. It proves AST/AI reuse across composition lifetimes, model-specific AI misses, offline resolver changes, parent event-loop progress and local hit timings. This is not live authenticated inference. Bridge integration denies cache HTTP routes and unsafe public cache placement; production output excludes cache markers. The React/Vite Chromium suite verifies persistence after restart/page entry, real watcher invalidation and exclusion of private fixture values from SQLite. See [Phase 08 validation](phase-08-validation.md).
+
+## Phase 09 coverage
+
+Source-literal and selected-projection tests cover static/entity/nested text, privacy/dynamic/control exclusions, source provenance, handler/import/API reachability, sibling exclusion and unknown scope. Client reducer tests reject malformed confidence, raw private transmission, stale/late messages and check digest-only selection requests and progressive chunks.
+
+The authenticated bridge verifies selected analysis when automatic page pre-analysis is disabled, forged source rejection and closed input schemas. `tests/e2e/analysis-ui.spec.ts` drives real React/Vite/Chromium, AST workers and SQLite with an owned mock Claude subprocess. It verifies no hover inference, independent fast translation, progressive source/AI findings, source links, copies, call search/confidence filtering, themes/locales/mobile/keyboard, private/runtime exclusion, HMR confidence demotion, provider failure, frame observations and no-repeat inference across dev server restart. Existing inspector tests retain host/SVG/frame/shadow/lazy/selection coverage and now assert the AI-disabled state. Production exclusion covers the new UI/transport/glossary markers. See [Phase 09 validation](phase-09-validation.md).
+
 ## Complete product acceptance
 
-Phase 02 infrastructure, Phase 03 local inspection, Phase 04 safe JSX mapping, Phase 05 static analysis and Phase 06 provider APIs are not completion of the entire product. Every [F01–F18 capability and Definition of Done](implementation-plan.md#definition-of-done) remains required. Later tests must extend mapping, analysis, provider and inspector coverage as those features evolve, and cover live authenticated inference, translation/follow-up UI journeys, scheduling, persistent caches/invalidation, editor navigation, failure recovery, and measured performance.
+Phase 02 infrastructure, Phase 03 local inspection, Phase 04 safe JSX mapping, Phase 05 static analysis and Phase 06 provider APIs are not completion of the entire product. Every [F01–F18 capability and Definition of Done](implementation-plan.md#definition-of-done) remains required. Later tests must extend mapping, analysis, provider and inspector coverage as those features evolve, and cover live authenticated inference, conversational follow-up/editor journeys, wider failure recovery and measured whole-project performance. Phase 07–09 cover scheduling, persistent caches/invalidation and selected translation/analysis UI within their documented limits.
 
 Current local HTTP support does not establish HTTPS/middleware-mode support. Path guards are not an OS sandbox for future AI subprocesses. Runtime source mapping and provider security must be verified in their own phases. Do not infer product readiness from foundation or route-counter tests.
 

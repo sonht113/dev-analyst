@@ -1,5 +1,7 @@
+import { createInspectionClient } from './inspection-client.js';
 import { startElementInspector, type ElementInspectorHandle } from './browser.js';
-import type { RoutePayload } from '@devanalyst/core';
+import type { PageProgress, RoutePayload } from '@devanalyst/core';
+import { startPagePreanalysis, type BrowserPageAnalysis } from './preanalysis-runtime.js';
 
 export interface BrowserBridgeSnapshot {
   readonly status:
@@ -9,6 +11,7 @@ export interface BrowserBridgeSnapshot {
   readonly serverRoute: RoutePayload | null;
   readonly lastSource: { readonly file: string; readonly kind: string } | null;
   readonly lastError: string | null;
+  readonly pageAnalysis: BrowserPageAnalysis | null;
 }
 
 export interface BrowserBridgeHandle {
@@ -30,9 +33,15 @@ declare global {
 export function startBridgeRuntime(options: {
   readonly bootstrapUrl: string;
   readonly theme?: 'system' | 'light' | 'dark';
+  readonly language?: 'en' | 'vi' | 'ja';
+  readonly preanalysis?: boolean;
+  readonly maxMessageBytes?: number;
 }): BrowserBridgeHandle {
   window.__DEVANALYST_BRIDGE__?.stop();
   let inspector: ElementInspectorHandle | undefined;
+  let inspection: ReturnType<typeof createInspectionClient> | undefined;
+  const inspectionPageId = crypto.randomUUID();
+  let preanalysis: ReturnType<typeof startPagePreanalysis> | undefined;
   let disposed = false;
   let paused = false;
   let connecting = false;
@@ -59,6 +68,7 @@ export function startBridgeRuntime(options: {
     serverRoute: null,
     lastSource: null,
     lastError: null,
+    pageAnalysis: null,
   };
 
   function publish(change: Partial<BrowserBridgeSnapshot>): void {
@@ -103,6 +113,11 @@ export function startBridgeRuntime(options: {
     if (disposed || paused) return;
     try {
       const payload = currentRoute(reason);
+      if (
+        snapshot.route?.pathname !== payload.pathname ||
+        (snapshot.route?.hashPath ?? null) !== (payload.hashPath ?? null)
+      )
+        inspection?.invalidate();
       publish({ route: payload });
       if (socket?.readyState === WebSocket.OPEN) {
         socket.send(
@@ -114,11 +129,47 @@ export function startBridgeRuntime(options: {
             payload,
           }),
         );
+        preanalysis?.reset(payload);
       }
     } catch {
       // A metadata failure must never turn a successful native navigation into an exception.
       publish({ lastError: 'BRIDGE_DISCONNECTED' });
     }
+  }
+
+  function progress(value: unknown): value is PageProgress {
+    const states = ['NOT_ANALYZED', 'QUEUED', 'ANALYZING', 'READY', 'STALE', 'FAILED'];
+    return (
+      record(value) &&
+      typeof value['requestId'] === 'string' &&
+      /^[a-f0-9-]{36}$/.test(value['requestId']) &&
+      typeof value['total'] === 'number' &&
+      Number.isInteger(value['total']) &&
+      value['total'] >= 0 &&
+      value['total'] <= 128 &&
+      typeof value['completed'] === 'number' &&
+      Number.isInteger(value['completed']) &&
+      value['completed'] >= 0 &&
+      value['completed'] <= value['total'] &&
+      typeof value['limited'] === 'boolean' &&
+      Array.isArray(value['items']) &&
+      value['items'].length <= 16 &&
+      value['items'].every(
+        (item: unknown) =>
+          record(item) &&
+          typeof item['revision'] === 'string' &&
+          /^[a-f0-9]{64}$/.test(item['revision']) &&
+          typeof item['elementId'] === 'string' &&
+          /^[a-f0-9]{64}$/.test(item['elementId']) &&
+          typeof item['state'] === 'string' &&
+          states.includes(item['state']) &&
+          typeof item['aiState'] === 'string' &&
+          states.includes(item['aiState']) &&
+          ['miss', 'fresh', 'stale'].includes(String(item['cache'])) &&
+          (item['error'] === null ||
+            (typeof item['error'] === 'string' && /^[A-Z_]{1,64}$/.test(item['error']))),
+      )
+    );
   }
 
   function retry(): void {
@@ -214,11 +265,17 @@ export function startBridgeRuntime(options: {
             clearTimeout(readyTimeout);
             attempts = 0;
             publish({ status: 'connected', clientId: payload['clientId'], lastError: null });
+            inspection?.invalidate();
             capture(snapshot.serverRoute === null ? 'initial' : 'reconnect');
           } else if (message['type'] === 'route.acknowledged') {
             if (!route(payload['route']) || payload['clientId'] !== snapshot.clientId)
               throw new Error('Invalid route');
             publish({ serverRoute: payload['route'] });
+          } else if (message['type'] === 'inspector.update') {
+            if (!inspection?.accept(payload)) throw new Error('Invalid inspector result');
+          } else if (message['type'] === 'page.progress') {
+            if (!progress(payload)) throw new Error('Invalid page progress');
+            preanalysis?.progress(payload);
           } else if (message['type'] === 'source.changed') {
             const file = payload['file'];
             if (
@@ -229,7 +286,9 @@ export function startBridgeRuntime(options: {
               !['add', 'change', 'unlink'].includes(String(payload['kind']))
             )
               throw new Error('Invalid source event');
+            inspection?.invalidate();
             publish({ lastSource: { file, kind: String(payload['kind']) } });
+            preanalysis?.refresh();
           } else if (message['type'] === 'bridge.error') {
             const error = payload['error'];
             if (
@@ -238,6 +297,8 @@ export function startBridgeRuntime(options: {
               !/^[A-Z_]{1,64}$/.test(error['code'])
             )
               throw new Error('Invalid error');
+            if (['SOURCE_CHANGED', 'WORKSPACE_ACCESS_DENIED'].includes(error['code']))
+              inspection?.invalidate();
             publish({ lastError: error['code'] });
           } else throw new Error('Unsupported frame');
         } catch {
@@ -252,6 +313,8 @@ export function startBridgeRuntime(options: {
         clearTimeout(readyTimeout);
         if (socket !== connection) return;
         socket = null;
+        preanalysis?.pause();
+        inspection?.invalidate();
         if (!disposed && !paused) retry();
       };
     } catch {
@@ -285,9 +348,12 @@ export function startBridgeRuntime(options: {
   };
   const pop = (): void => capture('popstate');
   const hash = (): void => capture('hashchange');
+  const mappingInvalidated = (): void => inspection?.invalidate();
 
   function pause(): void {
     paused = true;
+    preanalysis?.pause();
+    inspection?.invalidate();
     generation += 1;
     connecting = false;
     abort?.abort();
@@ -309,6 +375,7 @@ export function startBridgeRuntime(options: {
   const handle: BrowserBridgeHandle = {
     getSnapshot: () => ({
       ...snapshot,
+      pageAnalysis: preanalysis?.getSnapshot() ?? null,
       route: { ...snapshot.route },
       serverRoute: snapshot.serverRoute === null ? null : { ...snapshot.serverRoute },
       lastSource: snapshot.lastSource === null ? null : { ...snapshot.lastSource },
@@ -323,6 +390,8 @@ export function startBridgeRuntime(options: {
       if (disposed) return;
       disposed = true;
       inspector?.stop();
+      inspection?.stop();
+      preanalysis?.stop();
       pause();
       if (history.pushState === push) history.pushState = originalPush;
       if (history.replaceState === replace) history.replaceState = originalReplace;
@@ -331,6 +400,7 @@ export function startBridgeRuntime(options: {
       window.removeEventListener('pagehide', pause);
       window.removeEventListener('pageshow', resume);
       window.removeEventListener('online', resume);
+      window.removeEventListener('devanalyst:mapping-invalidated', mappingInvalidated);
       if (window.__DEVANALYST_BRIDGE__ === handle) delete window.__DEVANALYST_BRIDGE__;
       publish({ status: 'stopped' });
     },
@@ -344,7 +414,53 @@ export function startBridgeRuntime(options: {
     window.addEventListener('pagehide', pause);
     window.addEventListener('pageshow', resume);
     window.addEventListener('online', resume);
-    inspector = startElementInspector({ theme: options.theme ?? 'system' });
+    window.addEventListener('devanalyst:mapping-invalidated', mappingInvalidated);
+    if (options.preanalysis !== false)
+      preanalysis = startPagePreanalysis({
+        maxMessageBytes: options.maxMessageBytes ?? 16384,
+        send: (type, payload) => {
+          if (socket?.readyState !== WebSocket.OPEN || socket.bufferedAmount >= 32768) return false;
+          const message = JSON.stringify({
+            version: 1,
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            type,
+            payload,
+          });
+          if (new TextEncoder().encode(message).length > (options.maxMessageBytes ?? 16384))
+            return false;
+          socket.send(message);
+          return true;
+        },
+        changed: () => publish({ pageAnalysis: preanalysis?.getSnapshot() ?? null }),
+      });
+    inspection = createInspectionClient({
+      route: () => snapshot.route,
+      pageId: () => preanalysis?.getSnapshot()?.requestId ?? inspectionPageId,
+      changed: () => window.dispatchEvent(new Event('devanalyst:inspection')),
+      send: (type, payload) => {
+        if (socket?.readyState !== WebSocket.OPEN || socket.bufferedAmount > 32768) return false;
+        const message = JSON.stringify({
+          version: 1,
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          type,
+          payload,
+        });
+        if (new TextEncoder().encode(message).length > (options.maxMessageBytes ?? 16384))
+          return false;
+        socket.send(message);
+        return true;
+      },
+    });
+    inspector = startElementInspector({
+      theme: options.theme ?? 'system',
+      language: options.language ?? 'en',
+      onInspection: (metadata, expanded) => inspection?.inspect(metadata, expanded),
+      getInspection: () => inspection?.getSnapshot() ?? null,
+      onClose: () => inspection?.cancel(),
+      onPriority: (element, priority) => preanalysis?.prioritize(element, priority),
+    });
     void connect();
   } catch {
     handle.stop();

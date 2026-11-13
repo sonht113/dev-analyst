@@ -1,3 +1,4 @@
+import { inspectJSXText, type JSXInspectionOrigin } from './jsx-text.js';
 import { createHash } from 'node:crypto';
 import ts from 'typescript';
 import MagicString from 'magic-string';
@@ -30,6 +31,7 @@ export interface InstrumentationResult {
     readonly mappings: string;
   } | null;
   readonly manifest: SourceModuleManifest;
+  readonly inspections: readonly JSXInspectionOrigin[];
   readonly diagnostics: readonly MappingDiagnostic[];
 }
 function hash(value: string): string {
@@ -55,10 +57,17 @@ export function instrumentReactSource(
   };
   const diagnostics: MappingDiagnostic[] = [];
   const sites: MappingSite[] = [];
+  const inspections: JSXInspectionOrigin[] = [];
   const result = (
     text = code,
     map: InstrumentationResult['map'] = null,
-  ): InstrumentationResult => ({ code: text, map, manifest: { ...manifest, sites }, diagnostics });
+  ): InstrumentationResult => ({
+    code: text,
+    map,
+    manifest: { ...manifest, sites },
+    inspections,
+    diagnostics,
+  });
   if (code.length > 256 * 1024) {
     diagnostics.push({ code: 'LIMIT_EXCEEDED', source: null });
     return result();
@@ -220,6 +229,7 @@ export function instrumentReactSource(
             component,
           };
           sites.push(site);
+          inspections.push(inspectJSXText(node, ast, site.id, source));
           editor.appendLeft(node.tagName.end, ` ref={${binding}.ref(${sites.length - 1})}`);
         }
       }
@@ -229,6 +239,7 @@ export function instrumentReactSource(
   visit(ast);
   if (limitExceeded) {
     sites.length = 0;
+    inspections.length = 0;
     diagnostics.length = 0;
     diagnostics.push({ code: 'LIMIT_EXCEEDED', source: null });
     return result();

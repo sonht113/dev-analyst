@@ -4,11 +4,11 @@ AI-Powered Frontend Code Inspector.
 
 **React + Vite + TypeScript is the only currently supported framework combination.** DevAnalyst must deliver the [complete 18-feature plan](docs/implementation-plan.md) before product completion.
 
-## Phase 06 status
+## Phase 09 status
 
 Implemented: automatic development-only browser runtime injection, authenticated loopback WebSocket bridge, connection tracking, browser-reported routes, source-change notifications, reconnection/teardown, configurable bridge ports, workspace access guards, CLI dev/doctor commands, and a local Shadow DOM browser element inspector with hover/modifier/context actions, pin/copy/keyboard controls, bounded DOM metadata and accessible frame/shadow-root handling.
 
-Phase 04 adds compile-time JSX origin mapping, lexical component evidence, runtime instance IDs and HMR invalidation within the [documented safe envelope](docs/adr/0006-react-source-mapping.md). Phase 05 adds a bounded Node static analysis engine for source-level components/props/guards/handlers/hooks/state/API/navigation; see the [API guide](docs/static-analysis.md). Phase 06 adds the opt-in Claude Code provider API for Vietnamese explanations and Japanese UI translation, with guarded source context, no-tools permissions, structured output and bounded work; see [usage and compatibility](docs/claude-code.md). Browser analysis/AI presentation, pre-analysis, persistent caching and editor navigation remain pending. The bridge does not invoke AI, collect input/history-state values, expose source-read RPCs, or infer routes from terminal logs. All packages remain private; NPM scope ownership is unverified.
+Phase 04 adds compile-time JSX origin mapping, lexical component evidence, runtime instance IDs and HMR invalidation within the [documented safe envelope](docs/adr/0006-react-source-mapping.md). Phase 05 adds a bounded Node static analysis engine for source-level components/props/guards/handlers/hooks/state/API/navigation; see the [API guide](docs/static-analysis.md). Phase 06 adds the opt-in Claude Code provider API for Vietnamese explanations and Japanese UI translation, with guarded source context, no-tools permissions, structured output and bounded work; see [usage and compatibility](docs/claude-code.md). Phase 07 adds progressive page pre-analysis, prioritized/deduplicated AST workers, route cancellation, hash-validated memory reuse and incremental status; see [configuration and limits](docs/preanalysis.md). Background Claude additionally requires explicit `preanalysis.backgroundAI` and AI path consent. Phase 08 adds worker-owned SQLite persistence, page/component/element scopes, separate translation storage, dependency/alias invalidation, safe stale revalidation and Node cache controls; see [cache usage](docs/persistent-cache.md). Phase 09 adds independent translation, scoped source/AI findings, clickable evidence, call search, copy actions, locale/theme preferences and responsive compact/expanded inspection; see [inspector usage](docs/inspector-ui.md). Explicit expanded AI inspection uses configured AI/path consent; hover does not start Claude. Editor navigation and conversational follow-ups remain pending. The bridge does not collect input/history-state values, expose source-read RPCs, or infer routes from terminal logs. All packages remain private; NPM scope ownership is unverified.
 
 ## Run this repository
 
@@ -73,7 +73,7 @@ The inspector starts alongside the bridge. Ordinary hover displays a passive too
 
 **Pin/Unpin**, **Copy**, **Close** and **Escape** control the selection. Inside the inspector, **Alt+P** toggles pinning and **Alt+C** copies metadata. The menu supports arrows, Home/End, Tab/Shift+Tab, Enter and Escape. Explicit selection moves focus into the panel; closing restores prior focus. The `config.inspector.theme` option accepts `system`, `light` or `dark`.
 
-Text and metadata stay in the browser. No form values or editable/private contents are read; arbitrary data/event/URL attributes and hidden text are omitted. Mark sensitive UI subtrees with `data-devanalyst-private` or `data-private`. Copy writes only the displayed DOM metadata to the local clipboard, with a manual-copy error when permission is unavailable. Source is **VERIFIED** only for currently registered safe JSX origin; unsupported/stale/ambiguous mappings are **UNKNOWN** with no claimed source. Translation and AI analysis remain pending. Japanese-script extraction is a heuristic that also matches Han text.
+Text stays in the browser. Page pre-analysis sends only bounded structural metadata and verified JSX identifiers to the local Node bridge. No form values or editable/private contents are read; arbitrary data/event/URL attributes and hidden text are omitted. Mark sensitive UI subtrees with `data-devanalyst-private` or `data-private`. Copy writes only the displayed DOM metadata to the local clipboard, with a manual-copy error when permission is unavailable. Source is **VERIFIED** only for currently registered safe JSX origin; unsupported/stale/ambiguous mappings are **UNKNOWN** with no claimed source. Translation and AI analysis remain pending. Japanese-script extraction is a heuristic that also matches Han text.
 
 Open shadow roots and same-origin frames are supported within bounded discovery; cross-origin/sandboxed frame internals and closed roots are opaque. Geometry supports ordinary client rectangles and axis-aligned scaled/nested frames; rotated/skewed frames, pseudo-elements, canvas internals and browser top-layer occlusion have limitations. See [ADR 0005](docs/adr/0005-browser-element-inspector.md) and [Phase 03 validation](docs/phase-03-validation.md).
 
@@ -93,11 +93,15 @@ For local workspace packages outside the Vite app root, set an explicit common w
 
 Retain the plugin instance (`const inspector = devanalyst(...)`) to inspect `inspector.api.getMappingDiagnostics()` in Node. It reports allowed relative files, mapping/skip codes, counts and measured transform duration. Browser `getSnapshot().metadata.mapping` reports precise unknown reasons. Source-change invalidation uses hashed module/revision identifiers through Vite HMR and no browser DOM values. A syntax-error edit makes visible old source evidence unknown; correction and ref commit restore mapping. No source-reading RPC or AI call is added.
 
+## Translation and analysis UI
+
+Hover for lightweight original/translation and source information. Alt+Click opens detailed source-backed analysis; AI is optional and disabled by default. Translation runs independently of business analysis, with separate cache indicators and explicit stale/UNKNOWN results. Source links expand evidence inside the panel. Select English, Vietnamese or Japanese chrome and system/light/dark themes. See [usage, consent and limitations](docs/inspector-ui.md) and [Phase 09 validation](docs/phase-09-validation.md).
+
 ## Static code analysis
 
 Use `createStaticAnalyzer` from `@devanalyst/analyzer` in Node. `analyzeDetailed` returns structured source findings, a bounded dependency/call graph, source hashes, selected subjects, diagnostics and measured metrics. The existing `analyze` method still returns validated `Finding[]`. See the [executable API guide](docs/static-analysis.md).
 
-The engine parses TS/JS/TSX/JSX and binds local/imported/re-exported symbols without executing application/config code. It supports explicit aliases and guarded JSON/JSONC TypeScript path mappings. VERIFIED means a directly evidenced source construct/reference, INFERRED marks candidate interpretation, and UNKNOWN retains unresolved targets. Every detailed finding says `execution: not-evaluated`; a static API/navigation/state reference does not prove runtime execution. Scope/resource limitations are documented in [ADR 0007](docs/adr/0007-static-analysis-engine.md). No analysis RPC, provider invocation or automatic analysis in hover/HMR is enabled by this API.
+The engine parses TS/JS/TSX/JSX and binds local/imported/re-exported symbols without executing application/config code. It supports explicit aliases and guarded JSON/JSONC TypeScript path mappings. VERIFIED means a directly evidenced source construct/reference, INFERRED marks candidate interpretation, and UNKNOWN retains unresolved targets. Every detailed finding says `execution: not-evaluated`; a static API/navigation/state reference does not prove runtime execution. Scope/resource limitations are documented in [ADR 0007](docs/adr/0007-static-analysis-engine.md). The standalone API does not start background work; Phase 07 composes it through cancellable workers as described in [page pre-analysis](docs/preanalysis.md).
 
 ## Claude Code explanations
 
@@ -130,6 +134,15 @@ Production-exclusion tests build both controlled Vite fixtures and the real Reac
 - [Repository structure](docs/repository-structure.md)
 - [Project constitution](docs/project-constitution.md)
 - [ADR 0004: Vite local bridge](docs/adr/0004-vite-local-bridge.md)
+- [Inspector translation and analysis UI](docs/inspector-ui.md)
+- [Phase 09 validation](docs/phase-09-validation.md)
+- [ADR 0011: Translation and inspector UI](docs/adr/0011-translation-and-inspector-ui.md)
+- [Persistent cache](docs/persistent-cache.md)
+- [Phase 08 validation](docs/phase-08-validation.md)
+- [ADR 0010: Persistent analysis cache](docs/adr/0010-persistent-analysis-cache.md)
+- [Page pre-analysis](docs/preanalysis.md)
+- [Phase 07 validation](docs/phase-07-validation.md)
+- [ADR 0009: Predictive page pre-analysis](docs/adr/0009-predictive-page-preanalysis.md)
 - [Phase 06 validation](docs/phase-06-validation.md)
 - [ADR 0008: Claude Code provider](docs/adr/0008-claude-code-provider.md)
 - [Claude Code API and compatibility](docs/claude-code.md)

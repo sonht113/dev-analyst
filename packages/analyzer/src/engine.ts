@@ -42,6 +42,9 @@ export function createStaticAnalyzer(input: StaticAnalyzerOptions): StaticCodeAn
     const diagnostic = (value: AnalysisDiagnostic) => {
       if (diagnostics.length < 100) diagnostics.push(value);
     };
+    let sourceAliases: Readonly<Record<string, string>> = {};
+    let missingDependencies: readonly string[] = [];
+    let dependencyHashes: Readonly<Record<string, string>> = {};
     let canonicalPaths: ReadonlyMap<string, string> = new Map();
     let model: SemanticModel | undefined,
       hashes: Readonly<Record<string, string>> = {},
@@ -50,6 +53,9 @@ export function createStaticAnalyzer(input: StaticAnalyzerOptions): StaticCodeAn
       budget.check();
       const project = await loadProject(options, parsedSources.data, budget, diagnostic);
       hashes = project.hashes;
+      dependencyHashes = project.dependencyHashes;
+      missingDependencies = project.missingDependencies;
+      sourceAliases = project.sourceAliases;
       canonicalPaths = project.canonicalPaths;
       model = new SemanticModel(project, budget, diagnostics);
       model.index();
@@ -130,6 +136,9 @@ export function createStaticAnalyzer(input: StaticAnalyzerOptions): StaticCodeAn
       diagnostics,
       selectedSubjects: selected,
       sourceHashes: hashes,
+      dependencyHashes,
+      missingDependencies,
+      sourceAliases,
       metrics: {
         files: budget.files,
         bytes: budget.bytes,

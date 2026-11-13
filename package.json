@@ -17,7 +17,7 @@
     "dev:packages": "tsc -b tsconfig.packages.json --watch --preserveWatchOutput",
     "dev:react": "pnpm build:packages && pnpm --filter playground-react dev",
     "typecheck": "pnpm build:packages && tsc -p tsconfig.json --noEmit && pnpm -r typecheck",
-    "lint": "eslint packages/core packages/vite-plugin packages/inspector packages/analyzer packages/ai packages/cache packages/cli apps/playground-react scripts tests/active tests/e2e/bridge.spec.ts tests/e2e/inspector.spec.ts tests/e2e/mapping.spec.ts *.config.* --max-warnings=0 && pnpm check:boundaries && pnpm format:check",
+    "lint": "eslint packages/core packages/vite-plugin packages/inspector packages/analyzer packages/ai packages/cache packages/cli apps/playground-react scripts tests/active tests/e2e/bridge.spec.ts tests/e2e/inspector.spec.ts tests/e2e/mapping.spec.ts tests/e2e/preanalysis.spec.ts tests/e2e/analysis-ui.spec.ts *.config.* --max-warnings=0 && pnpm check:boundaries && pnpm format:check",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "test": "pnpm build:packages && vitest run",
@@ -51,6 +51,7 @@
     "typescript-eslint": "8.72.0",
     "vite": "8.3.5",
     "vitest": "5.0.5",
-    "ws": "8.22.2"
+    "ws": "8.22.2",
+    "@devanalyst/cache": "workspace:*"
   }
 }
