@@ -1,0 +1,5 @@
+import { useState } from 'react';
+export function Row({id}:{id:string}) {
+  const [count, setCount] = useState(0);
+  return <article><button id={'row-' + id} onClick={() => setCount(count + 1)}>Row {id} {count}</button></article>;
+}

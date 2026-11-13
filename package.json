@@ -16,8 +16,8 @@
     "dev": "pnpm dev:react",
     "dev:packages": "tsc -b tsconfig.packages.json --watch --preserveWatchOutput",
     "dev:react": "pnpm build:packages && pnpm --filter playground-react dev",
-    "typecheck": "pnpm build:packages && tsc -p tsconfig.tools.json --noEmit && pnpm -r typecheck",
-    "lint": "eslint packages/core packages/vite-plugin packages/inspector packages/analyzer packages/ai packages/cache packages/cli apps/playground-react scripts tests/active tests/e2e/bridge.spec.ts *.config.* --max-warnings=0 && pnpm check:boundaries && pnpm format:check",
+    "typecheck": "pnpm build:packages && tsc -p tsconfig.json --noEmit && pnpm -r typecheck",
+    "lint": "eslint packages/core packages/vite-plugin packages/inspector packages/analyzer packages/ai packages/cache packages/cli apps/playground-react scripts tests/active tests/e2e/bridge.spec.ts tests/e2e/inspector.spec.ts tests/e2e/mapping.spec.ts *.config.* --max-warnings=0 && pnpm check:boundaries && pnpm format:check",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "test": "pnpm build:packages && vitest run",
@@ -32,9 +32,12 @@
     "test:integration": "pnpm build:packages && vitest run tests/active/integration"
   },
   "devDependencies": {
+    "@devanalyst/ai": "workspace:*",
+    "@devanalyst/analyzer": "workspace:*",
     "@devanalyst/core": "workspace:*",
     "@devanalyst/vite-plugin": "workspace:*",
     "@eslint/js": "^10.0.0",
+    "@jridgewell/trace-mapping": "0.3.31",
     "@playwright/test": "1.65.0",
     "@types/node": "^22.0.0",
     "@types/react": "19.3.0",

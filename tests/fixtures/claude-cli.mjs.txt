@@ -1,0 +1,55 @@
+import { readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { join } from 'node:path';
+const scenario = __SCENARIO__;
+const root = __ROOT__;
+const args = process.argv.slice(2);
+const record = {args, cwd: process.cwd(), envKeys: Object.keys(process.env),envPath:process.env.PATH};
+const log = join(root,'calls.jsonl');
+if(args.includes('--version')) { appendFileSync(log,JSON.stringify(record)+'\n'); console.log((scenario.version??'2.1.323')+' (Claude Code)'); process.exit(0); }
+if(args.includes('--help')) { appendFileSync(log,JSON.stringify(record)+'\n'); console.log('--safe-mode --restricted --json-schema --tools --setting-sources --strict-mcp-config --permission-mode --disable-slash-commands --no-session-persistence --max-budget-usd'); process.exit(0); }
+if(args.includes('auth')) { appendFileSync(log,JSON.stringify(record)+'\n'); console.log(JSON.stringify({loggedIn:scenario.auth!==false,authMethod:'claude.ai',email:'never-return-this@example.test'})); process.exit(scenario.auth===false?1:0); }
+let input='';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data',chunk=>{input+=chunk});
+process.stdin.on('end',()=>{
+ appendFileSync(log,JSON.stringify({...record,input})+'\n');
+ const countPath=join(root,'count');
+ const count=(existsSync(countPath)?Number(readFileSync(countPath,'utf8')):0)+1;
+ writeFileSync(countPath,String(count));
+ const context=JSON.parse(input);
+ const emit=value=>process.stdout.write(JSON.stringify(value)+'\n');
+ if(scenario.mode==='flood'){process.stdout.write('x'.repeat(300000));return;}
+ if(scenario.mode==='malformed'){process.stdout.write('not json\n');return;}
+ if(scenario.mode==='hang'){process.on('SIGTERM',()=>{});setInterval(()=>{},1000);return;}
+ if(scenario.mode==='descendant'){
+  spawn(process.execPath,['-e',`setTimeout(()=>require('node:fs').writeFileSync(${JSON.stringify(join(root,'late-write'))},'bad'),1800);setInterval(()=>{},1000)`],{stdio:'inherit'});
+  process.on('SIGTERM',()=>{});setInterval(()=>{},1000);return;
+ }
+ const init={type:'system',subtype:'init',tools:['StructuredOutput'],mcp_servers:[],permissionMode:'dontAsk',claude_code_version:'2.1.323',skills:[],plugins:[]};
+ if(scenario.mode==='tools')init.tools.push('Bash');
+ if(scenario.mode==='mcp')init.mcp_servers.push({name:'unsafe'});
+ if(scenario.mode==='plugin')init.plugins.push({name:'unsafe',path:'/project/plugin',source:'local'});
+ if(scenario.mode==='permission')init.permissionMode='bypassPermissions';
+ emit(init);
+ if(scenario.mode==='tool-use')emit({type:'assistant',message:{content:[{type:'tool_use',name:'Write',input:{file_path:'src/App.tsx'}}]}});
+ if(scenario.mode==='hook')emit({type:'system',subtype:'hook_started'});
+ if(scenario.mode==='empty'){return;}
+ if(scenario.mode==='stderr'){process.stderr.write('private provider diagnostic NEVER_EXPOSE_THIS');process.exitCode=1;return;}
+ if(scenario.mode==='rate'&&count<=(scenario.failures??1)||['quota','auth-failure','overload'].includes(scenario.mode)){
+  const message=scenario.mode==='rate'?'429 rate limit':scenario.mode==='quota'?'credit balance exhausted':scenario.mode==='auth-failure'?'401 authentication required':'503 overloaded';
+  emit({type:'result',subtype:'error_during_execution',is_error:true,result:message,permission_denials:[],usage:{input_tokens:5,output_tokens:0}});process.exitCode=1;return;
+ }
+ const id=context.deterministicFindings?.[0]?.id;
+ const items=[];
+ if(id) items.push({kind:'behavior',text:'Tham chiếu nguồn cho thấy nút đăng ký một callback; việc thực thi chưa được quan sát.',confidence:'VERIFIED',evidenceIds:[id],uiTextId:null});
+ if(context.uiText?.length)items.push({kind:'translation',text:'Lưu',confidence:'INFERRED',evidenceIds:id?[id]:[],uiTextId:context.uiText[0].id});
+ if(!items.length)items.push({kind:'limitation',text:'Chưa đủ bằng chứng để xác định hành vi.',confidence:'UNKNOWN',evidenceIds:[],uiTextId:null});
+ if(scenario.mode==='citation')items[0].evidenceIds=['00000000-0000-4000-8000-000000000001'];
+ if(scenario.mode==='ui-id')items.at(-1).uiTextId='invented';
+ const response={language:'vi',explanations:items};
+ if(scenario.mode==='schema')response.extra='invalid';
+ if(scenario.mode==='language')response.language='ja';
+ const finish=()=>emit({type:'result',subtype:'success',is_error:false,structured_output:scenario.mode==='missing'?undefined:response,permission_denials:[],usage:{input_tokens:scenario.inputTokens??100,cache_read_input_tokens:10,cache_creation_input_tokens:0,output_tokens:scenario.outputTokens??40}});
+ if(scenario.delay)setTimeout(finish,scenario.delay);else finish();
+});

@@ -1,8 +1,26 @@
 {
-  "files": [],
+  "extends": "./tsconfig.tools.json",
   "references": [
     {
-      "path": "./tsconfig.packages.json"
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/vite-plugin"
+    },
+    {
+      "path": "./packages/inspector"
+    },
+    {
+      "path": "./packages/analyzer"
+    },
+    {
+      "path": "./packages/ai"
+    },
+    {
+      "path": "./packages/cache"
+    },
+    {
+      "path": "./packages/cli"
     }
   ]
 }

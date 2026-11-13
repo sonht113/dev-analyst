@@ -148,6 +148,25 @@ describe('real Vite and authenticated bridge', () => {
     expect(code).toContain('startBridgeRuntime');
     expect(code).not.toContain(data.token);
     expect(code).not.toContain('node:');
+    expect(code).toContain("from './browser.js'");
+    for (const asset of ['browser.js', 'metadata.js']) {
+      const response = await fetch(`${origin(server)}/__devanalyst/${asset}`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('content-type')).toBe('text/javascript');
+      const module = await response.text();
+      expect(module).not.toContain(data.token);
+      expect(module).not.toContain('node:');
+      expect(
+        (
+          await fetch(`${origin(server)}/__devanalyst/${asset}`, {
+            headers: { Origin: 'http://untrusted.example' },
+          })
+        ).status,
+      ).toBe(403);
+      expect((await fetch(`${origin(server)}/__devanalyst/${asset}?file=secret`)).status).toBe(403);
+    }
+    expect((await fetch(`${origin(server)}/__devanalyst/private.js`)).status).toBe(404);
     expect(plugin.api.getSnapshot().state).toBe('ready');
     expect(JSON.stringify(plugin.api.getSnapshot())).not.toContain(data.token);
   });

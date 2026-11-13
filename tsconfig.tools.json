@@ -12,6 +12,8 @@
     "scripts/**/*.mjs",
     "tests/active/**/*.ts",
     "tests/e2e/bridge.spec.ts",
+    "tests/e2e/inspector.spec.ts",
+    "tests/e2e/mapping.spec.ts",
     "packages/core/**/*.test.ts",
     "packages/vite-plugin/**/*.test.ts",
     "packages/inspector/**/*.test.ts",

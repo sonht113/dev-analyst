@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: 'bridge.spec.ts',
+  testMatch: ['bridge.spec.ts', 'inspector.spec.ts', 'mapping.spec.ts'],
   workers: 1,
   fullyParallel: false,
   forbidOnly: Boolean(process.env['CI']),

@@ -18,6 +18,8 @@ import {
   type LocalBridge,
 } from './bridge.js';
 import { createWorkspaceAccess } from './workspace.js';
+import { createSourceMapping, type SourceMappingDiagnostic } from './mapping.js';
+export type { SourceMappingDiagnostic } from './mapping.js';
 
 export type { BridgeClient, BridgeLifecycleEvent } from './bridge.js';
 
@@ -40,6 +42,7 @@ export interface DevAnalystPluginApi {
   /** Resolves without credentials; failures resolve null and remain available in getSnapshot(). */
   readonly ready: Promise<{ readonly host: '127.0.0.1'; readonly port: number } | null>;
   getSnapshot(): DevAnalystPluginSnapshot;
+  getMappingDiagnostics(): readonly SourceMappingDiagnostic[];
 }
 
 export interface DevAnalystPlugin extends Plugin {
@@ -69,6 +72,8 @@ interface Integration {
   readonly ready: DevAnalystPluginApi['ready'];
   getSnapshot(): DevAnalystPluginSnapshot;
   close(): Promise<void>;
+  transform: ReturnType<typeof createSourceMapping>['transform'];
+  getMappingDiagnostics(): readonly SourceMappingDiagnostic[];
 }
 
 function configureIntegration(
@@ -83,6 +88,7 @@ function configureIntegration(
   let disposed = false;
   let dispose: () => Promise<void> = async () => undefined;
   let namespace = '/__devanalyst/';
+  const mapping: { service?: ReturnType<typeof createSourceMapping> } = {};
   let resolveReady: (value: { host: '127.0.0.1'; port: number } | null) => void = () => undefined;
   const ready: DevAnalystPluginApi['ready'] = new Promise((resolvePromise) => {
     resolveReady = resolvePromise;
@@ -92,6 +98,8 @@ function configureIntegration(
       return namespace;
     },
     ready,
+    transform: async (code, id) => mapping.service?.transform(code, id) ?? null,
+    getMappingDiagnostics: () => mapping.service?.diagnostics() ?? [],
     getSnapshot: () => ({
       state,
       port: bridge?.port ?? null,
@@ -159,6 +167,9 @@ function configureIntegration(
     resolve(server.config.root, configuration.data.workspaceRoot),
     configuration.data.source,
   );
+  mapping.service = createSourceMapping(access, `${namespace}mapping-runtime.js`, (data) => {
+    if (!disposed) server.ws.send({ type: 'custom', event: 'devanalyst:source-invalidated', data });
+  });
   // Vite can configure the replacement server before closing the old one.
   // Bind only once this particular HTTP server starts listening.
   let releaseListening: () => void = () => undefined;
@@ -220,6 +231,7 @@ function configureIntegration(
       .then((workspace) => workspace.sourcePath(file, kind === 'unlink'))
       .then((source) => {
         if (disposed || source === null) return;
+        mapping.service?.invalidate(source);
         if (changes.size >= 256 && !changes.has(source)) {
           report(
             new DevAnalystError(
@@ -250,7 +262,13 @@ function configureIntegration(
       });
   };
   server.watcher.on('all', watcher);
-  let runtime: Promise<string> | undefined;
+  const runtimeAssets = new Map<string, Promise<string>>();
+  const assets: Readonly<Record<string, string>> = {
+    'client.js': '@devanalyst/inspector/runtime',
+    'browser.js': '@devanalyst/inspector/browser',
+    'metadata.js': '@devanalyst/inspector/metadata',
+    'mapping-runtime.js': '@devanalyst/inspector/mapping-runtime',
+  };
   server.middlewares.use((request, response, next) => {
     const url = new URL(request.url ?? '/', 'http://localhost');
     if (!url.pathname.startsWith(namespace)) {
@@ -273,15 +291,22 @@ function configureIntegration(
         return;
       }
       response.end(JSON.stringify(bridge.bootstrap()));
-    } else if (url.pathname === `${namespace}client.js`) {
-      runtime ??= readFile(new URL(import.meta.resolve('@devanalyst/inspector/runtime')), 'utf8');
+    } else if (Object.hasOwn(assets, url.pathname.slice(namespace.length))) {
+      const name = url.pathname.slice(namespace.length);
+      const asset = assets[name];
+      if (!asset) return;
+      let runtime = runtimeAssets.get(name);
+      if (!runtime) {
+        runtime = readFile(new URL(import.meta.resolve(asset)), 'utf8');
+        runtimeAssets.set(name, runtime);
+      }
       void runtime
         .then((code) => {
           if (response.destroyed) return;
           response.setHeader('Content-Type', 'text/javascript');
           const bootstrapUrl = JSON.stringify(`${namespace}bootstrap`).replaceAll('<', '\\u003c');
           response.end(
-            `${code.replace(/\/\/# sourceMappingURL=.*$/m, '')}\nstartBridgeRuntime({bootstrapUrl:${bootstrapUrl}});`,
+            `${code.replace(/\/\/# sourceMappingURL=.*$/m, '')}${name === 'client.js' ? `\nstartBridgeRuntime({bootstrapUrl:${bootstrapUrl},theme:${JSON.stringify(configuration.data.inspector.theme)}});` : ''}`,
           );
         })
         .catch(() => {
@@ -312,6 +337,7 @@ function configureIntegration(
       server.watcher.off('all', watcher);
       clearTimeout(flushTimer);
       changes.clear();
+      mapping.service?.stop();
       await startup;
       await bridge?.close();
     })();
@@ -335,6 +361,24 @@ export function devanalyst(options: ViteIntegrationOptions = {}): DevAnalystPlug
   });
   const plugin: DevAnalystPlugin = {
     name: 'devanalyst',
+    enforce: 'pre',
+    resolveId(source) {
+      if (active && current && source === `${current.namespace}mapping-runtime.js`)
+        return { id: source, external: true };
+      return null;
+    },
+    transform: {
+      order: 'pre',
+      async handler(code, id, transformOptions) {
+        if (!active || transformOptions?.ssr || this.environment?.config.consumer === 'server')
+          return null;
+        try {
+          return (await current?.transform(code, id)) ?? null;
+        } catch {
+          return null;
+        }
+      },
+    },
     apply(_config, environment) {
       const enabled =
         active &&
@@ -348,6 +392,7 @@ export function devanalyst(options: ViteIntegrationOptions = {}): DevAnalystPlug
       get ready() {
         return current?.ready ?? firstReady;
       },
+      getMappingDiagnostics: () => current?.getMappingDiagnostics() ?? [],
       getSnapshot: () =>
         current?.getSnapshot() ?? { state: 'inactive', port: null, clients: [], error: null },
     },

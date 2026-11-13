@@ -1,3 +1,4 @@
+import { startElementInspector, type ElementInspectorHandle } from './browser.js';
 import type { RoutePayload } from '@devanalyst/core';
 
 export interface BrowserBridgeSnapshot {
@@ -28,8 +29,10 @@ declare global {
  */
 export function startBridgeRuntime(options: {
   readonly bootstrapUrl: string;
+  readonly theme?: 'system' | 'light' | 'dark';
 }): BrowserBridgeHandle {
   window.__DEVANALYST_BRIDGE__?.stop();
+  let inspector: ElementInspectorHandle | undefined;
   let disposed = false;
   let paused = false;
   let connecting = false;
@@ -319,6 +322,7 @@ export function startBridgeRuntime(options: {
     stop: () => {
       if (disposed) return;
       disposed = true;
+      inspector?.stop();
       pause();
       if (history.pushState === push) history.pushState = originalPush;
       if (history.replaceState === replace) history.replaceState = originalReplace;
@@ -340,6 +344,7 @@ export function startBridgeRuntime(options: {
     window.addEventListener('pagehide', pause);
     window.addEventListener('pageshow', resume);
     window.addEventListener('online', resume);
+    inspector = startElementInspector({ theme: options.theme ?? 'system' });
     void connect();
   } catch {
     handle.stop();

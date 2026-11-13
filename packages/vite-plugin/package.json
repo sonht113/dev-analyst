@@ -34,13 +34,12 @@
     "@devanalyst/core": "workspace:*",
     "@devanalyst/inspector": "workspace:*",
     "ws": "8.22.2",
-    "picomatch": "4.0.7"
+    "@devanalyst/analyzer": "workspace:*"
   },
   "devDependencies": {
     "typescript": "6.0.3",
     "vite": "8.3.5",
-    "@types/ws": "^8.18.0",
-    "@types/picomatch": "^4.0.0"
+    "@types/ws": "^8.18.0"
   },
   "peerDependencies": {
     "vite": "^8.3.5"

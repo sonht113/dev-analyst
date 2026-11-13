@@ -1,0 +1,19 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { sendOrder } from '@services/orders';
+import { Child } from '@ui/Child';
+export function App({ canSave, visible, busy }: {canSave:boolean;visible:boolean;busy:boolean}) {
+  const [saved, setSaved] = useState(false);
+  const navigate = useNavigate();
+  const submit = useCallback(async () => {
+    await sendOrder();
+    setSaved(true);
+    navigate('/orders');
+  }, [navigate]);
+  useEffect(() => { fetch('/bootstrap'); }, []);
+  if (!visible) return null;
+  return <main>
+    {canSave && <button disabled={busy} onClick={submit}>Save order</button>}
+    <Child onSave={submit} title={saved ? 'Saved' : 'Ready'}/>
+  </main>;
+}

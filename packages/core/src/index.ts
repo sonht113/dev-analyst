@@ -35,3 +35,20 @@ export type {
   LogRecord,
   LogResult,
 } from './logger.js';
+export type {
+  ComponentIdentity,
+  MappingSite,
+  SourceModuleManifest,
+  MappingUnknownReason,
+  ElementSourceMapping,
+} from './mapping.js';
+export type {
+  AnalysisConfidence,
+  StaticCondition,
+  StaticAnalysisDetail,
+  StaticAnalysisFinding,
+  AnalysisGraphNode,
+  AnalysisGraphEdge,
+  AnalysisDiagnostic,
+  StaticAnalysisResult,
+} from './analysis.js';

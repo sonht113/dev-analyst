@@ -1,0 +1,36 @@
+import { Component, Fragment, Suspense, lazy, memo, useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Row } from '@fixture/ui';
+import { Unsupported } from './Unsupported';
+const Lazy = lazy(() => import('./Lazy'));
+const Memo = memo(function MemoButton() { return <button id="memo">Memo button</button>; });
+class ClassButton extends Component { render() { return <button id="class">Class button</button>; } }
+function RenderProp({render}:{render:()=>React.ReactNode}) { return <section>{render()}</section>; }
+function WithRef() {
+  const ref = useCallback((node: HTMLButtonElement | null) => {
+    if (node) window.fixtureStats.attaches++; else window.fixtureStats.detaches++;
+  }, []);
+  return <button id="native-ref" ref={ref}>Native ref</button>;
+}
+export default function App() {
+  const [count, setCount] = useState(0);
+  const [reversed, setReversed] = useState(false);
+  const [route, setRoute] = useState(false);
+  const rows = reversed ? ['b', 'a'] : ['a', 'b'];
+  return <main>
+    <h1>Mapping fixture</h1>
+    <button id="count" onClick={() => setCount(count + 1)}>Count {count}</button>
+    <button id="reorder" onClick={() => setReversed(!reversed)}>Reorder</button>
+    <button id="navigate" onClick={() => { history.pushState({}, '', '/next'); setRoute(!route); }}>Navigate</button>
+    <Fragment><button id="fragment">Fragment child</button></Fragment>
+    {route ? <button id="route-next">Next route</button> : <button id="route-initial">Initial route</button>}
+    <section id="rows">{rows.map(id => <Row key={id} id={id}/>)}</section>
+    <Memo/><ClassButton/><WithRef/>
+    <button id="spread" {...{'aria-label':'Spread button'}}>Spread</button>
+    <custom-control id="custom">Custom host</custom-control>
+    <RenderProp render={() => <button id="render-prop">Render prop</button>}/>
+    <Suspense fallback={<div id="fallback">Loading</div>}><Lazy/></Suspense>
+    {createPortal(<button id="portal">Portal button</button>, document.body)}
+    <Unsupported/>
+  </main>;
+}

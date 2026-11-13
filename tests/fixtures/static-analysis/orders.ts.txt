@@ -1,0 +1,4 @@
+import { postOrder } from '../api';
+export function sendOrder() {
+  return postOrder();
+}

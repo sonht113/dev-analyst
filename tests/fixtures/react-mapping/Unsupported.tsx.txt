@@ -1,0 +1,4 @@
+import { createElement } from 'react';
+export function Unsupported() {
+  return createElement('button', {id:'imperative'}, 'Dynamic factory');
+}
