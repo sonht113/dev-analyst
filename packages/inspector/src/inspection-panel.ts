@@ -3,10 +3,58 @@ import type { ElementMetadata } from './metadata.js';
 import type { InspectionSnapshot, InspectionLane } from './inspection-client.js';
 import { glossaryTranslation } from './glossary.js';
 import { label, type DisplayLanguage, type Label } from './inspection-strings.js';
+interface FlowSection {
+  readonly key: 'visibility' | 'value' | 'interaction';
+  readonly empty: Label;
+  readonly items: readonly InspectorItem[];
+}
+
+function flowSections(items: readonly InspectorItem[]): FlowSection[] {
+  const unique = [
+    ...new Map(
+      items.map((item) => [`${item.group}:${item.title}:${item.description}`, item]),
+    ).values(),
+  ];
+  return [
+    {
+      key: 'visibility',
+      empty: 'noVisibility',
+      items: unique.filter((item) => item.group === 'visibility'),
+    },
+    { key: 'value', empty: 'noValue', items: unique.filter((item) => item.group === 'value') },
+    {
+      key: 'interaction',
+      empty: 'noInteraction',
+      items: ['handler', 'disabled', 'navigation', 'api', 'state', 'effect'].flatMap((group) =>
+        unique.filter((item) => item.group === group),
+      ),
+    },
+  ];
+}
+
+function flowText(item: InspectorItem, language: DisplayLanguage): string {
+  const branches: Record<string, Label> = {
+    truthy: 'truthy',
+    falsy: 'falsy',
+    nullish: 'nullish',
+    'non-nullish': 'nonNullish',
+    iteration: 'iteration',
+  };
+  const colon = item.title.indexOf(': ');
+  const branch = branches[item.title.slice(0, colon)];
+  const title =
+    item.group === 'visibility' && branch
+      ? `${label(language, branch)}: ${item.title.slice(colon + 2)}`
+      : item.title;
+  const guards = item.description.split('\nGuards: ')[1];
+  return `${title}${guards ? `\n${label(language, 'guards')}: ${guards}` : ''}`;
+}
+
 export function createInspectionPanel(
   parent: HTMLElement,
   originalNode: HTMLElement,
   options: {
+    openSource?: (source: SourceReference, revision?: string) => Promise<string>;
     language: DisplayLanguage;
     theme: 'system' | 'light' | 'dark';
     mode: () => void;
@@ -24,7 +72,34 @@ export function createInspectionPanel(
     metadata: ElementMetadata | null = null,
     snapshot: InspectionSnapshot | null = null,
     expanded = false,
+    selectedElement = '',
     stamp = '';
+  const editorNotice = make('div');
+  editorNotice.setAttribute('role', 'status');
+  editorNotice.setAttribute('aria-label', 'Editor navigation');
+  const openOrigin = make('button');
+  openOrigin.type = 'button';
+  openOrigin.textContent = 'Open source in editor';
+  openOrigin.hidden = !options.openSource;
+  const open = async (reference: SourceReference): Promise<void> => {
+    editorNotice.textContent = 'Opening editor…';
+    try {
+      editorNotice.textContent =
+        (await options.openSource?.(
+          reference,
+          metadata?.mapping.status === 'VERIFIED' &&
+            metadata.mapping.source?.file === reference.file
+            ? metadata.mapping.revision
+            : undefined,
+        )) ?? 'Editor navigation unavailable.';
+    } catch {
+      editorNotice.textContent = 'Editor navigation failed. Reconnect and retry.';
+    }
+  };
+  openOrigin.addEventListener('click', () => {
+    if (metadata?.mapping.status === 'VERIFIED' && metadata.mapping.source)
+      void open(metadata.mapping.source);
+  });
   const controls = make('div');
   controls.className = 'inspection-controls';
   const mode = make('button', controls);
@@ -99,11 +174,17 @@ export function createInspectionPanel(
   analysisStatus.dataset['testid'] = 'analysis-status';
   const deep = make('div');
   deep.className = 'analysis-content';
+  const flowHeading = make('h3', deep);
+  const flow = make('div', deep);
+  flow.className = 'flow-summary';
   const explanation = make('p', deep);
   explanation.className = 'source-notice';
   const observed = make('p', deep);
   observed.className = 'source-notice';
-  const filters = make('div', deep);
+  const technical = make('details', deep);
+  technical.className = 'technical-details';
+  const technicalHeading = make('summary', technical);
+  const filters = make('div', technical);
   filters.className = 'inspection-filters';
   const search = make('input', filters);
   search.type = 'search';
@@ -113,13 +194,13 @@ export function createInspectionPanel(
     const option = make('option', confidence);
     option.value = value;
   }
-  const cards = make('div', deep);
+  const cards = make('div', technical);
   cards.className = 'finding-sections';
   const empty = make('p', deep);
   empty.className = 'empty-evidence';
   search.addEventListener('input', renderItems);
   confidence.addEventListener('change', renderItems);
-  const metadataDetails = make('details', deep);
+  const metadataDetails = make('details', technical);
   metadataDetails.className = 'advanced-metadata';
   const metadataSummary = make('summary', metadataDetails),
     metadataText = make('pre', metadataDetails);
@@ -150,6 +231,7 @@ export function createInspectionPanel(
     );
   }
   function status(lane: InspectionLane | undefined): string {
+    if (lane?.error === 'ROUTE_EXCLUDED') return label(language, 'routeExcluded');
     if (!lane) return label(language, 'waiting');
     if (lane.error === 'NO_STATIC_TEXT') return label(language, 'noStaticText');
     if (lane.error === 'PRIVATE_CONTEXT') return label(language, 'private');
@@ -196,10 +278,18 @@ export function createInspectionPanel(
       pre.hidden = !pre.hidden;
       link.setAttribute('aria-expanded', String(!pre.hidden));
     });
+    if (options.openSource && reference.start) {
+      const editor = make('button', container);
+      editor.type = 'button';
+      editor.textContent = label(language, 'openEditor');
+      editor.addEventListener('click', () => {
+        void open(reference);
+      });
+    }
   }
   function renderItems(): void {
     const opened = new Set(
-      [...cards.querySelectorAll<HTMLAnchorElement>('a[aria-expanded="true"]')].map(
+      [...deep.querySelectorAll<HTMLAnchorElement>('a[aria-expanded="true"]')].map(
         (node) => node.dataset['evidenceId'],
       ),
     );
@@ -208,13 +298,71 @@ export function createInspectionPanel(
         ? (parent.getRootNode() as ShadowRoot).activeElement
         : null;
     const focusedId =
-      focused instanceof HTMLElement && cards.contains(focused)
+      focused instanceof HTMLElement && deep.contains(focused)
         ? focused.dataset['evidenceId']
         : undefined;
+    const focusedFlow = focused instanceof HTMLElement ? focused.dataset['flowFocus'] : undefined;
     cards.replaceChildren();
     const items = [...(snapshot?.ai.items ?? []), ...(snapshot?.analysis.items ?? [])];
+    const openedFlow = new Set(
+      [...flow.querySelectorAll<HTMLDetailsElement>('details[open]')].map(
+        (node) => node.dataset['flowId'],
+      ),
+    );
+    flow.replaceChildren();
+    for (const section of flowSections(snapshot?.analysis.items ?? [])) {
+      const container = make('section', flow);
+      container.dataset['flow'] = section.key;
+      const heading = make('h4', container);
+      heading.textContent = label(language, section.key);
+      if (!section.items.length) {
+        const message = make('p', container);
+        message.className = 'empty-evidence';
+        message.textContent =
+          snapshot?.analysis.state === 'READY'
+            ? label(language, section.empty)
+            : status(snapshot?.analysis);
+      }
+      for (const item of section.items.slice(0, section.key === 'interaction' ? 6 : 3)) {
+        const entry = make('div', container);
+        entry.className = 'flow-step';
+        const body = make('p', entry);
+        body.textContent = `${section.key === 'interaction' ? label(language, item.group) + ': ' : ''}${flowText(item, language)}`;
+        const badge = make('span', entry);
+        badge.className = 'confidence ' + item.confidence.toLowerCase();
+        badge.textContent = item.confidence;
+        if (item.group === 'value' && item.description) {
+          const binding = make('p', entry);
+          binding.className = 'value-binding';
+          binding.textContent = `${label(language, 'binding')}: ${item.description}`;
+        }
+        // A single disclosure holds provenance, timestamp and cache state without repeating it in the flow.
+        const provenance = make('details', entry);
+        provenance.dataset['flowId'] = item.id;
+        provenance.open = openedFlow.has(item.id);
+        const summary = make('summary', provenance);
+        summary.dataset['flowFocus'] = item.id;
+        summary.textContent = label(language, 'evidence');
+        if (item.evidence)
+          evidence(provenance, item.evidence.source, item.evidence.code, 'flow-' + item.id);
+        const time = make('small', provenance);
+        time.textContent = `${item.cacheStatus} · ${new Date(item.analyzedAt).toLocaleTimeString(language)}`;
+      }
+      if (section.items.length > (section.key === 'interaction' ? 6 : 3)) {
+        const more = make('p', container);
+        more.textContent = label(language, 'flowMore');
+      }
+    }
+    const aiSummary = snapshot?.ai.items.find((item) => item.group === 'purpose');
+    if (aiSummary) {
+      const ai = make('p', flow);
+      ai.className = 'flow-explanation';
+      ai.lang = 'vi';
+      ai.textContent = `${aiSummary.confidence} · ${aiSummary.description.slice(0, 600)}${aiSummary.description.length > 600 ? '… ' + label(language, 'flowMore') : ''}`;
+    }
     const groups: InspectorItem['group'][] = [
       'purpose',
+      'value',
       'visibility',
       'disabled',
       'handler',
@@ -226,6 +374,7 @@ export function createInspectionPanel(
       'limitation',
     ];
     for (const group of groups) {
+      if (!items.some((item) => item.group === group)) continue;
       const section = make('section', cards);
       section.className = 'finding-group';
       section.dataset['group'] = group;
@@ -282,15 +431,19 @@ export function createInspectionPanel(
         time.textContent = `${item.cacheStatus} · ${new Date(item.analyzedAt).toLocaleTimeString(language)} · ${label(language, 'terms')}`;
       }
     }
-    for (const link of cards.querySelectorAll<HTMLAnchorElement>('a[data-evidence-id]'))
+    for (const link of deep.querySelectorAll<HTMLAnchorElement>('a[data-evidence-id]'))
       if (opened.has(link.dataset['evidenceId'] ?? '')) {
         link.setAttribute('aria-expanded', 'true');
         const code = link.nextElementSibling;
         if (code instanceof HTMLElement) code.hidden = false;
       }
     if (focusedId)
-      cards
+      deep
         .querySelector<HTMLAnchorElement>(`a[data-evidence-id="${CSS.escape(focusedId)}"]`)
+        ?.focus({ preventScroll: true });
+    if (focusedFlow)
+      flow
+        .querySelector<HTMLElement>(`summary[data-flow-focus="${CSS.escape(focusedFlow)}"]`)
         ?.focus({ preventScroll: true });
     empty.hidden = items.length > 0;
     empty.textContent =
@@ -299,6 +452,12 @@ export function createInspectionPanel(
         : label(language, 'noSource');
   }
   function refresh(): void {
+    set(flowHeading, label(language, 'flow'));
+    set(technicalHeading, label(language, 'technical'));
+    set(openOrigin, label(language, 'openSource'));
+    editorNotice.setAttribute('aria-label', label(language, 'editorNavigation'));
+    openOrigin.disabled =
+      metadata?.mapping.status !== 'VERIFIED' || !metadata.mapping.source?.start;
     parent.lang = language;
     set(mode, label(language, expanded ? 'compact' : 'expanded'));
     mode.setAttribute('aria-expanded', String(expanded));
@@ -359,9 +518,18 @@ export function createInspectionPanel(
       interactive: boolean,
     ): void {
       metadata = next;
+      const element = next?.mapping.status === 'VERIFIED' ? next.mapping.elementId : '';
+      if (element !== selectedElement) {
+        technical.open = false;
+        search.value = '';
+        confidence.value = 'all';
+        selectedElement = element;
+      }
       snapshot = nextSnapshot;
       expanded = isExpanded;
       const key = [
+        selectedElement,
+        snapshot?.requestId,
         metadata?.mapping.status,
         metadata?.mapping.status === 'VERIFIED' ? metadata.mapping.revision : '',
         metadata?.text,
@@ -373,6 +541,7 @@ export function createInspectionPanel(
         language,
         theme,
       ].join('|');
+      openOrigin.inert = !interactive;
       controls.inert = !interactive;
       copyRow.inert = !interactive;
       deep.inert = !interactive;

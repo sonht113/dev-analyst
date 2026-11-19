@@ -2,7 +2,7 @@
   "name": "@devanalyst/next-plugin",
   "version": "0.1.0",
   "private": true,
-  "description": "DevAnalyst next-plugin package",
+  "description": "DevAnalyst next-plugin integration",
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -23,6 +23,21 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
+    },
+    "./loader": {
+      "types": "./dist/loader.d.ts",
+      "import": "./dist/loader.js",
+      "default": "./dist/loader.js"
+    },
+    "./mapping-runtime": {
+      "types": "./dist/mapping-runtime.d.ts",
+      "import": "./dist/mapping-runtime.js",
+      "default": "./dist/mapping-runtime.js"
     }
   },
   "scripts": {
@@ -31,9 +46,22 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@devanalyst/core": "workspace:*"
+    "@devanalyst/core": "workspace:*",
+    "@devanalyst/server": "workspace:*",
+    "@devanalyst/analyzer": "workspace:*",
+    "@devanalyst/inspector": "workspace:*",
+    "chokidar": "5.0.0"
   },
   "devDependencies": {
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "@types/ws": "^8.18.0",
+    "@types/react": "19.3.0",
+    "next": "16.4.6",
+    "react": "19.3.1"
+  },
+  "peerDependencies": {
+    "next": "~16.4.6",
+    "react": "~19.3.1"
   }
 }

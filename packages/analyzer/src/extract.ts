@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { valueBindings } from './value-source.js';
 import type { AnalysisConfidence, SourceReference } from '@devanalyst/core';
 import type { SemanticModel } from './semantic.js';
 import { conditionsOf, isFunction, literal, property, sourceOf, textOf, unwrap } from './syntax.js';
@@ -66,6 +67,22 @@ export function extractStructure(model: SemanticModel): TraceRoot[] {
           'This JSX source references an intrinsic element or component; rendered instances are not evaluated.',
           subject,
         );
+        if (ts.isJsxOpeningElement(node) && ts.isJsxElement(node.parent)) {
+          for (const content of node.parent.children) {
+            if (!ts.isJsxExpression(content) || !content.expression) continue;
+            model.fact(
+              content.expression,
+              {
+                kind: 'value',
+                expression: textOf(content.expression),
+                bindings: valueBindings(model, content.expression),
+              },
+              'VERIFIED',
+              'Displayed content uses this source expression and lexical declarations; current values and ultimate API provenance are not evaluated.',
+              subject,
+            );
+          }
+        }
         for (const condition of conditionsOf(node))
           model.fact(
             node,
@@ -105,6 +122,42 @@ export function extractStructure(model: SemanticModel): TraceRoot[] {
                 ? attribute.initializer.expression
                 : attribute.initializer;
           const value = expression ? textOf(expression) : 'true';
+          if (tag === 'a' && name === 'href' && expression)
+            model.fact(
+              attribute,
+              {
+                kind: 'navigation',
+                mechanism: 'href',
+                destination: literal(expression),
+                expression: value,
+              },
+              literal(expression) !== null ? 'VERIFIED' : 'INFERRED',
+              'Source declares an anchor destination; default prevention, navigation guards and runtime execution are not evaluated.',
+              subject,
+            );
+          if (
+            expression &&
+            [
+              'value',
+              'defaultValue',
+              'children',
+              'alt',
+              'title',
+              'placeholder',
+              'aria-label',
+            ].includes(name)
+          )
+            model.fact(
+              attribute,
+              {
+                kind: 'value',
+                expression: `${name}: ${value}`,
+                bindings: valueBindings(model, expression),
+              },
+              'VERIFIED',
+              'Source supplies this display expression; runtime values and ultimate data provenance are not evaluated.',
+              subject,
+            );
           model.fact(
             attribute,
             { kind: 'prop', name, expression: value, spread: false },

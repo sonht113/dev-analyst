@@ -68,6 +68,11 @@
       "types": "./dist/inspection-strings.d.ts",
       "import": "./dist/inspection-strings.js",
       "default": "./dist/inspection-strings.js"
+    },
+    "./vue-runtime": {
+      "types": "./dist/vue-runtime.d.ts",
+      "import": "./dist/vue-runtime.js",
+      "default": "./dist/vue-runtime.js"
     }
   },
   "scripts": {

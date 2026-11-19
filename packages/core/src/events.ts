@@ -68,6 +68,18 @@ export type RoutePayload = z.infer<typeof routePayloadSchema>;
 export const clientEventSchema = z.discriminatedUnion('type', [
   z.strictObject({
     ...envelope,
+    type: z.literal('editor.open'),
+    payload: z.strictObject({
+      requestId: z.uuid(),
+      source: sourceReferenceSchema,
+      revision: z
+        .string()
+        .regex(/^[a-f0-9]{64}$/)
+        .optional(),
+    }),
+  }),
+  z.strictObject({
+    ...envelope,
     type: z.literal('inspector.request'),
     payload: z.strictObject({
       requestId: z.uuid(),
@@ -128,6 +140,19 @@ export const clientEventSchema = z.discriminatedUnion('type', [
 ]);
 
 export const serverEventSchema = z.discriminatedUnion('type', [
+  z.strictObject({
+    ...envelope,
+    type: z.literal('mapping.invalidated'),
+    payload: z.strictObject({
+      moduleId: z.string().regex(/^[a-f0-9]{64}$/),
+      revision: z.string().regex(/^[a-f0-9]{64}$/),
+    }),
+  }),
+  z.strictObject({
+    ...envelope,
+    type: z.literal('editor.result'),
+    payload: z.strictObject({ requestId: z.uuid(), error: serializedErrorSchema.nullable() }),
+  }),
   z.strictObject({
     ...envelope,
     type: z.literal('inspector.update'),

@@ -1,6 +1,7 @@
+import type { FrameworkId, MappingStrategy } from './framework.js';
 import type { SourceReference } from './findings.js';
 
-/** Compile-time JSX ownership, not a private React runtime component stack. */
+/** Compile-time source ownership, not a private React runtime component stack. */
 export interface ComponentIdentity {
   readonly id: string;
   readonly name: string;
@@ -14,6 +15,8 @@ export interface MappingSite {
 }
 export interface SourceModuleManifest {
   readonly version: 1;
+  readonly framework?: FrameworkId;
+  readonly strategy?: MappingStrategy;
   readonly moduleId: string;
   readonly revision: string;
   readonly sites: readonly MappingSite[];
@@ -33,7 +36,7 @@ export type ElementSourceMapping =
       readonly elementId: string;
       readonly runtimeId: string;
       readonly revision: string;
-      readonly strategy: 'compile-time-ref-v1';
+      readonly strategy: MappingStrategy;
       readonly observedAt: string;
       readonly cache: 'none';
     }

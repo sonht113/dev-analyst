@@ -1,10 +1,8 @@
 # DevAnalyst contributor instructions
 
-> CURRENT FRAMEWORK SCOPE: DevAnalyst supports React + Vite + TypeScript only. Do not implement Next.js, Vue, Nuxt, Angular, Svelte, or other framework integrations unless the project owner explicitly changes this scope. All development, testing, optimization, and release work must prioritize complete React + Vite support.
+> CURRENT FRAMEWORK SCOPE: The owner explicitly authorized Phase 11 to add Next.js + React, Vue 3 + Vite and Nuxt 4 alongside React + Vite. This supersedes the previous React-only restriction for these three targets only. See ADR 0013. Framework support is conditional on passing actual integration tests; no server-only runtime access or generic future integrations may be claimed.
 
-This permanent scope restriction takes precedence over older roadmap documents, architecture decisions, and prompts that describe multi-framework work. Full product completeness is required within React + Vite; the restriction does not reduce the feature set or Definition of Done.
-
-Read [the project constitution](docs/project-constitution.md) and [the current architecture](docs/architecture.md) before implementation. Apply the current framework restriction above when reading the constitution and all phase documents. If an instruction conflicts with the active user request, follow the user request and document material architectural consequences.
+Read the constitution, architecture, implementation plan, progress and testing policy before implementation. Current owner instructions take precedence over historical React-only documents. Preserve all uncommitted Phase 10 work.
 
 ## Phase discipline
 
@@ -18,7 +16,7 @@ Read [the project constitution](docs/project-constitution.md) and [the current a
 ## Engineering requirements
 
 - Use the DevAnalyst identity, TypeScript strict mode, pnpm workspaces, explicit package exports, and stable public contracts.
-- Separate the browser runtime, Node.js services, React AST/source analysis, Claude Code CLI integration, and cache infrastructure. Use React-specific instrumentation where needed and stable public APIs. Do not introduce generic framework adapter layers, placeholder integrations, or speculative abstractions.
+- Separate the browser runtime, Node.js services, React AST/source analysis, Claude Code CLI integration, and cache infrastructure. Use React-specific instrumentation where needed and stable public APIs. Use the Phase 11 adapter contract only for the four authorized integrations; no placeholders or speculative integrations.
 - Prefer deterministic source analysis before AI. Never invent source locations, endpoints, destinations, behavior, or evidence.
 - Classify significant findings as `VERIFIED`, `INFERRED`, or `UNKNOWN`, with evidence, timestamps, and cache state. A verified static relationship does not prove runtime execution.
 - Exclude inspector injection, AI bridges, development endpoints, and local paths from production output; verify exclusion with automated tests once implemented.
@@ -33,16 +31,16 @@ Read [the project constitution](docs/project-constitution.md) and [the current a
 
 - The user explicitly confirmed DevAnalyst and `@devanalyst/*` for Phase 01.
 - Use Node.js `^22.22.3 || ^24.15.0` and the pinned `pnpm@10.33.0`.
-- The active packages are `core`, `vite-plugin`, `inspector`, `analyzer`, `ai`, `cache`, and `cli` under `packages/`. The only active application is `apps/playground-react`.
-- Existing out-of-scope directories are retained historical work, inventoried in [progress](docs/progress.md), and excluded from active workspace/build/test/CI targets. Their presence does not establish support. Do not extend, configure, test, or install dependencies for them. Do not delete user code or completed work without explicit owner approval.
-- Packages are ESM-only. Use `.js` extensions for relative TypeScript imports, public names for cross-package imports, and `workspace:*` for internal dependencies. Never import another package's source or private subpaths.
+- The active packages are `core`, `vite-plugin`, `inspector`, `analyzer`, `ai`, `cache`, `cli`, `server`, `next-plugin`, `vue-plugin`, and `nuxt-module`. Active apps are `playground-react`, `playground-next`, `playground-vue`, and `playground-nuxt`.
+- Phase 11 reactivates the existing Next/Vue/Nuxt directories without deleting their prior source. Other historical/out-of-scope work stays excluded. Integration files alone do not establish support.
+- Packages are ESM-only. Use `.js` extensions for relative TypeScript imports in library packages, public names for cross-package imports, and `workspace:*` for internal dependencies. Native Next application sources use extensionless TypeScript imports for the tested bundlers; see ADR 0014. Never import another package's source or private subpaths.
 - Keep TypeScript project references synchronized with internal dependencies. `pnpm --filter @devanalyst/<name> build` must build its prerequisites automatically.
 - `core` and `inspector` are browser-safe: no Node.js builtins, globals, or Node-only workspace dependencies. Public entry points are `src/index.ts` with explicit exports.
-- Phase 02 implements the Vite bridge, browser route runtime, and CLI dev/doctor. The separately authorized Phase 03 adds the local browser element inspector (see ADR 0005); Phase 04 adds safe React JSX origin mapping (ADR 0006); Phase 05 adds the Node static analysis engine (ADR 0007); Phase 06 adds the opt-in Claude Code CLI provider API with runtime no-tools permissions (ADR 0008). Phase 07 adds progressive route-aware pre-analysis, cancellable AST workers and hash-validated in-memory reuse (ADR 0009); background Claude additionally requires explicit `preanalysis.backgroundAI` consent. Phase 08 adds worker-owned SQLite persistence and validated page/component/element/translation namespaces (ADR 0010); no raw runtime values are persisted. Phase 09 adds independent source-matched translation and selected behavioral/AI inspector presentation (ADR 0011). Editor navigation and conversational follow-ups remain pending. Live authenticated AI success is not claimed when local auth is unavailable. All 18 product capabilities in the [implementation plan](docs/implementation-plan.md) remain required for React + Vite.
+- Phase 02 implements the Vite bridge, browser route runtime, and CLI dev/doctor. The separately authorized Phase 03 adds the local browser element inspector (see ADR 0005); Phase 04 adds safe React JSX origin mapping (ADR 0006); Phase 05 adds the Node static analysis engine (ADR 0007); Phase 06 adds the opt-in Claude Code CLI provider API with runtime no-tools permissions (ADR 0008). Phase 07 adds progressive route-aware pre-analysis, cancellable AST workers and hash-validated in-memory reuse (ADR 0009); background Claude additionally requires explicit `preanalysis.backgroundAI` consent. Phase 08 adds worker-owned SQLite persistence and validated page/component/element/translation namespaces (ADR 0010); no raw runtime values are persisted. Phase 09 adds independent source-matched translation and selected behavioral/AI inspector presentation (ADR 0011). Phase 10 adds trusted typed file/mode configuration, operational CLI/Claude/bridge diagnostics, configurable shortcuts/depth/exclusions/debug and guarded VS Code/Cursor navigation (ADR 0012). Conversational follow-ups remain pending. Live authenticated AI success is not claimed when local auth is unavailable. All 18 product capabilities in the [implementation plan](docs/implementation-plan.md) remain required for React + Vite.
 - Path schemas validate syntax. Node source reads must use the workspace access policy with containment, mandatory exclusions, canonical-path/inode checks, and size limits. The bridge exposes no file-read RPC. Phase 06's Node AI provider intersects source policy with explicit AI consent and uses fixed no-tools permissions; see ADR 0008 for compatibility and the trusted CLI/admin boundary. Phase 09 authorizes explicit expanded source-backed inspector dispatch with configured AI/path consent. Hover must not start Claude; automatic transmission still needs the separate background consent. Browser requests carry only structural identity and text digests, never raw DOM text or values.
 - Use stable log event identifiers and allowed metadata. Do not log source text, runtime values, credentials, user text, or arbitrary errors. Handle failed log writes explicitly.
 - Place source unit tests beside code as `*.test.ts`, tool tests in `tests/unit`, and browser tests in `tests/e2e`.
-- For implementation changes, run lint, typecheck, unit tests, relevant integration tests, builds, and E2E tests scoped to the seven active packages and React + Vite. Follow [testing](docs/testing.md): root aggregate commands now target only the seven active packages and React fixture; historical fixtures/tests remain excluded. For documentation-only changes, check formatting, links, scope consistency, and preservation of code/configuration without starting framework servers.
+- For implementation changes, run lint, typecheck, unit tests, relevant integration tests, builds, and E2E tests scoped to the eleven active packages and four authorized applications. Follow [testing](docs/testing.md): root aggregate commands target eleven active packages and four authorized applications; unrelated historical tests remain excluded. For documentation-only changes, check formatting, links, scope consistency, and preservation of code/configuration without starting framework servers.
 - `test:independent` deletes generated package `dist` outputs. Do not run it concurrently with builds or watchers.
 - Do not manually edit generated outputs or lockfile content. Update dependency resolution through pnpm.
 - Keep packages private until publication scope, ownership, licensing, and release policy are decided.
@@ -56,7 +54,7 @@ The product is complete only when every required React + Vite feature is impleme
 
 ## Future Roadmap
 
-Additional frameworks are deferred possibilities only. They have no active phases, packages to create, playgrounds, dependencies, implementation work, or test targets. Complete React + Vite support before considering expansion; a future change still requires explicit owner authorization and an ADR.
+Angular, Svelte and any further integrations remain outside scope. The owner authorized only Phase 11's three additions; no further phase, publication or commit is implied.
 
 <!-- CODEGRAPH_START -->
 

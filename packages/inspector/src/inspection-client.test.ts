@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { inspectorUpdateSchema, type InspectorUpdate } from '@devanalyst/core';
+import { inspectorItemSchema, inspectorUpdateSchema, type InspectorUpdate } from '@devanalyst/core';
 import { createInspectionClient, isInspectorUpdate } from './inspection-client.js';
 import { glossaryTranslation } from './glossary.js';
 import type { ElementMetadata } from './metadata.js';
@@ -75,6 +75,18 @@ function fixture() {
   };
   return { client, send, changed, update };
 }
+it('accepts every public inspector group at the browser transport boundary', () => {
+  const { client, update } = fixture();
+  const item = update.items[0];
+  if (!item) throw new Error('Missing item');
+  for (const group of inspectorItemSchema.shape.group.options) {
+    const message = { ...update, lane: 'analysis' as const, items: [{ ...item, group }] };
+    expect(inspectorUpdateSchema.safeParse(message).success).toBe(true);
+    expect(isInspectorUpdate(message)).toBe(true);
+    expect(client.accept(message)).toBe(true);
+  }
+  client.stop();
+});
 it('sends only a source identity and digest and excludes private controls', async () => {
   const { client, send } = fixture();
   await vi.waitFor(() =>

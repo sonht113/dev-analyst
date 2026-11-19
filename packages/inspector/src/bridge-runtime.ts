@@ -1,6 +1,12 @@
+import { invalidateSourceModule } from './mapping-runtime.js';
 import { createInspectionClient } from './inspection-client.js';
 import { startElementInspector, type ElementInspectorHandle } from './browser.js';
-import type { PageProgress, RoutePayload } from '@devanalyst/core';
+import type {
+  DevAnalystConfig,
+  PageProgress,
+  RoutePayload,
+  SourceReference,
+} from '@devanalyst/core';
 import { startPagePreanalysis, type BrowserPageAnalysis } from './preanalysis-runtime.js';
 
 export interface BrowserBridgeSnapshot {
@@ -32,12 +38,24 @@ declare global {
  */
 export function startBridgeRuntime(options: {
   readonly bootstrapUrl: string;
+  readonly shortcuts?: DevAnalystConfig['inspector']['shortcuts'];
   readonly theme?: 'system' | 'light' | 'dark';
   readonly language?: 'en' | 'vi' | 'ja';
   readonly preanalysis?: boolean;
   readonly maxMessageBytes?: number;
 }): BrowserBridgeHandle {
   window.__DEVANALYST_BRIDGE__?.stop();
+  const editorRequests = new Map<
+    string,
+    { finish: (message: string) => void; timer: ReturnType<typeof setTimeout> }
+  >();
+  function finishEditorRequests(): void {
+    for (const request of editorRequests.values()) {
+      clearTimeout(request.timer);
+      request.finish('Bridge disconnected. Reconnect and retry.');
+    }
+    editorRequests.clear();
+  }
   let inspector: ElementInspectorHandle | undefined;
   let inspection: ReturnType<typeof createInspectionClient> | undefined;
   const inspectionPageId = crypto.randomUUID();
@@ -72,6 +90,8 @@ export function startBridgeRuntime(options: {
   };
 
   function publish(change: Partial<BrowserBridgeSnapshot>): void {
+    if (change.status && change.status !== 'connected' && change.status !== 'connecting')
+      finishEditorRequests();
     snapshot = { ...snapshot, ...change };
     try {
       window.dispatchEvent(new CustomEvent('devanalyst:bridge', { detail: handle.getSnapshot() }));
@@ -256,7 +276,25 @@ export function startBridgeRuntime(options: {
           )
             throw new Error('Invalid frame');
           const payload = message['payload'];
-          if (message['type'] === 'bridge.ready') {
+          if (message['type'] === 'editor.result') {
+            if (typeof payload['requestId'] !== 'string') throw new Error('Invalid editor reply');
+            const request = editorRequests.get(payload['requestId']);
+            if (request) {
+              const error = payload['error'];
+              if (
+                error !== null &&
+                (!record(error) ||
+                  typeof error['message'] !== 'string' ||
+                  error['message'].length > 1024)
+              )
+                throw new Error('Invalid editor reply');
+              clearTimeout(request.timer);
+              editorRequests.delete(payload['requestId']);
+              request.finish(
+                error === null ? 'Source opened in editor.' : String(error['message']),
+              );
+            }
+          } else if (message['type'] === 'bridge.ready') {
             if (
               typeof payload['clientId'] !== 'string' ||
               !/^[a-f0-9-]{36}$/.test(payload['clientId'])
@@ -276,6 +314,15 @@ export function startBridgeRuntime(options: {
           } else if (message['type'] === 'page.progress') {
             if (!progress(payload)) throw new Error('Invalid page progress');
             preanalysis?.progress(payload);
+          } else if (message['type'] === 'mapping.invalidated') {
+            if (
+              typeof payload['moduleId'] !== 'string' ||
+              !/^[a-f0-9]{64}$/.test(payload['moduleId']) ||
+              typeof payload['revision'] !== 'string' ||
+              !/^[a-f0-9]{64}$/.test(payload['revision'])
+            )
+              throw new Error('Invalid mapping notice');
+            invalidateSourceModule(payload);
           } else if (message['type'] === 'source.changed') {
             const file = payload['file'];
             if (
@@ -372,6 +419,7 @@ export function startBridgeRuntime(options: {
     void connect();
   }
 
+  const committed = (): void => capture('replaceState');
   const handle: BrowserBridgeHandle = {
     getSnapshot: () => ({
       ...snapshot,
@@ -397,6 +445,7 @@ export function startBridgeRuntime(options: {
       if (history.replaceState === replace) history.replaceState = originalReplace;
       window.removeEventListener('popstate', pop);
       window.removeEventListener('hashchange', hash);
+      window.removeEventListener('devanalyst:route-committed', committed);
       window.removeEventListener('pagehide', pause);
       window.removeEventListener('pageshow', resume);
       window.removeEventListener('online', resume);
@@ -411,6 +460,7 @@ export function startBridgeRuntime(options: {
     history.replaceState = replace;
     window.addEventListener('popstate', pop);
     window.addEventListener('hashchange', hash);
+    window.addEventListener('devanalyst:route-committed', committed);
     window.addEventListener('pagehide', pause);
     window.addEventListener('pageshow', resume);
     window.addEventListener('online', resume);
@@ -454,6 +504,33 @@ export function startBridgeRuntime(options: {
       },
     });
     inspector = startElementInspector({
+      ...(options.shortcuts ? { shortcuts: options.shortcuts } : {}),
+      openSource: (source: SourceReference, revision?: string) =>
+        new Promise<string>((finish) => {
+          if (socket?.readyState !== WebSocket.OPEN || editorRequests.size > 0) {
+            finish('Bridge unavailable or editor launch pending. Reconnect or retry.');
+            return;
+          }
+          const requestId = crypto.randomUUID();
+          const timer = setTimeout(() => {
+            editorRequests.delete(requestId);
+            finish('Editor launch timed out. Check code/cursor in PATH, then retry.');
+          }, 7000);
+          editorRequests.set(requestId, { finish, timer });
+          try {
+            socket.send(
+              JSON.stringify({
+                version: 1,
+                id: crypto.randomUUID(),
+                timestamp: new Date().toISOString(),
+                type: 'editor.open',
+                payload: { requestId, source, ...(revision ? { revision } : {}) },
+              }),
+            );
+          } catch {
+            finishEditorRequests();
+          }
+        }),
       theme: options.theme ?? 'system',
       language: options.language ?? 'en',
       onInspection: (metadata, expanded) => inspection?.inspect(metadata, expanded),

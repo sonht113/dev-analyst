@@ -27,3 +27,9 @@ export { createPageOrchestrator } from './preanalysis.js';
 export type { PageOrchestratorOptions, PageAnalysisSnapshot } from './preanalysis.js';
 
 export type { JSXInspectionOrigin } from './jsx-text.js';
+
+export { createFrameworkAdapter } from './framework-adapter.js';
+export type { FrameworkAdapter } from './framework-adapter.js';
+export { instrumentVueSource } from './vue-source.js';
+
+export type { SourceInspectionOrigin } from './source-inspection.js';

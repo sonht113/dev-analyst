@@ -8,6 +8,8 @@ export default defineConfig({
     'mapping.spec.ts',
     'preanalysis.spec.ts',
     'analysis-ui.spec.ts',
+    'developer-experience.spec.ts',
+    'frameworks.spec.ts',
   ],
   workers: 1,
   fullyParallel: false,

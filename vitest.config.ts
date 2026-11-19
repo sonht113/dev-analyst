@@ -10,7 +10,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: [
-      'packages/{core,vite-plugin,inspector,analyzer,ai,cache,cli}/**/*.test.ts',
+      'packages/{core,vite-plugin,inspector,analyzer,ai,cache,cli,server,next-plugin,vue-plugin,nuxt-module}/**/*.test.ts',
       'tests/active/**/*.test.ts',
     ],
     clearMocks: true,

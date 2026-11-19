@@ -565,3 +565,69 @@ test('reports real DOM-read failures safely and recovers; label candidates and l
   await page.locator('#counter').click();
   await expect(page.locator('#counter')).toHaveText('Count: 1');
 });
+
+test('hover preview stays reachable across the gap and can scroll, select text and pin without retargeting', async ({
+  page,
+}) => {
+  await page.locator('#inner').evaluate((node) => {
+    node.textContent = '説明テキスト '.repeat(300);
+  });
+  await page.locator('#nested').evaluate((node) => {
+    node.style.cssText = 'width:200px;height:55px;overflow:hidden;white-space:nowrap';
+  });
+  await page.locator('#nested').hover({ position: { x: 2, y: 2 } });
+  await expect.poll(async () => (await snapshot(page))?.metadata?.text).toContain('説明テキスト');
+  const original = (await snapshot(page))?.metadata?.mapping;
+  if (original?.status !== 'VERIFIED') throw Error('Missing test source mapping');
+  const trigger = await page.locator('#nested').boundingBox(),
+    card = await panel(page).boundingBox();
+  if (!trigger || !card) throw Error('Missing hover geometry');
+  const entryX = Math.max(card.x + 12, trigger.x + 4),
+    gapY = card.y > trigger.y ? trigger.y + trigger.height + 4 : card.y + card.height + 4;
+  await page.mouse.move(entryX, gapY, { steps: 5 });
+  // A deliberate pause longer than retarget dwell proves that the gap itself is safe.
+  await page.waitForTimeout(260);
+  expect((await snapshot(page))?.metadata?.mapping).toMatchObject({
+    status: 'VERIFIED',
+    runtimeId: original.runtimeId,
+    source: original.source,
+  });
+  await page.mouse.move(entryX, card.y + 20, { steps: 8 });
+  await expect.poll(async () => (await snapshot(page))?.interacting).toBe(true);
+  await expect(panel(page)).toHaveAttribute('role', 'region');
+  const scrollY = await page.evaluate(() => window.scrollY);
+  await panel(page).locator('#details').selectText();
+  await expect
+    .poll(() => page.evaluate(() => window.getSelection()?.toString()))
+    .toContain('説明テキスト');
+  await page.mouse.wheel(0, 700);
+  await expect.poll(() => panel(page).evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
+  expect((await snapshot(page))?.metadata?.text).toContain('説明テキスト');
+  expect((await snapshot(page))?.pinned).toBe(false);
+  await page.getByRole('button', { name: 'Pin', exact: true }).click();
+  await expect.poll(async () => (await snapshot(page))?.pinned).toBe(true);
+  await page.locator('#counter').hover();
+  expect((await snapshot(page))?.metadata?.text).toContain('説明テキスト');
+});
+
+test('hover panel keeps keyboard focus and selection while reading, then Escape restores host input focus', async ({
+  page,
+}) => {
+  await page.locator('#account').focus();
+  await page.locator('#counter').hover();
+  await expect.poll(async () => (await snapshot(page))?.metadata?.text).toBe('Count: 0');
+  const bounds = await panel(page).boundingBox();
+  if (!bounds) throw Error('No preview');
+  await page.mouse.move(bounds.x + 12, bounds.y + 18, { steps: 8 });
+  await expect.poll(async () => (await snapshot(page))?.interacting).toBe(true);
+  await page.getByLabel('Display language', { exact: true }).focus();
+  await page.locator('#nested').hover();
+  await expect(page.getByLabel('Display language', { exact: true })).toBeFocused();
+  expect((await snapshot(page))?.metadata?.text).toBe('Count: 0');
+  await page.keyboard.press('Escape');
+  await expect(panel(page)).toBeHidden();
+  await expect(page.locator('#account')).toBeFocused();
+  await page.locator('#counter').click();
+  await expect(page.locator('#counter')).toHaveText('Count: 1');
+});

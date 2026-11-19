@@ -75,6 +75,7 @@ export function isInspectorUpdate(value: unknown): value is InspectorUpdate {
       ![
         'translation',
         'purpose',
+        'value',
         'visibility',
         'disabled',
         'handler',

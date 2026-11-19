@@ -1,6 +1,14 @@
 # DevAnalyst progress
 
-**React + Vite + TypeScript is the only currently supported framework combination.** The full [18-feature plan and Definition of Done](implementation-plan.md) remain required. Phase 03 Browser Element Inspector was separately authorized by the owner and delivered ahead of React mapping; [ADR 0005](adr/0005-browser-element-inspector.md) records the sequencing. Phase 04 source mapping was separately authorized and implemented within the documented safe JSX envelope; see [ADR 0006](adr/0006-react-source-mapping.md). Phase 05 now adds the bounded static analysis API; [ADR 0007](adr/0007-static-analysis-engine.md) defines its source-only confidence semantics. Phase 06 adds the opt-in Claude Code provider API; [ADR 0008](adr/0008-claude-code-provider.md) records its runtime controls and compatibility. No later work starts automatically.
+## Owner-requested Japanese playground UI
+
+React, Next, Vue and Nuxt playgrounds now display Japanese navigation, order/status labels, forms, sample data, messages and detail routes with `lang="ja"`. Source literals remain available for Japanese-to-Vietnamese inspection; inspector preferences are independent. Existing framework journeys use the Japanese accessible names and retain HMR/host-behavior checks. See [playground usage](playgrounds.md).
+
+## Owner-requested element flow simplification
+
+The inspector now leads with translation and a compact selected-element flow: rendering guards, display expression/declaration sources, and event outcomes. Technical findings remain collapsed and available for source review. Handler guards no longer become rendering conditions. JSX/Vue display-source extraction and native anchor destinations extend the existing bounded source-only analysis; dynamic/runtime and ultimate API provenance remain explicitly unresolved. See [ADR 0015](adr/0015-element-flow-summary.md), [UI limits](inspector-ui.md) and [follow-up validation](element-flow-validation.md). This does not complete pending product/release work.
+
+Phase 11 is explicitly authorized for Next.js + React, Vue 3 + Vite and Nuxt 4 alongside React + Vite. [ADR 0013](adr/0013-framework-adapters.md) supersedes the former React-only scope for these three targets. The complete [18-feature plan](implementation-plan.md) remains required; framework support is limited to [tested configurations](frameworks.md). Earlier phase sections below retain historical delivery context.
 
 ## Completed foundation and Phase 02
 
@@ -68,6 +76,27 @@ See [Phase 02 validation](phase-02-validation.md) for exact final executed check
 - Independent copies, call search/confidence filtering, responsive positioning, native keyboard/focus behavior, English/Vietnamese/Japanese chrome and persistent theme/language preferences. Private/runtime text is excluded from provider requests.
 - See [usage](inspector-ui.md), [ADR 0011](adr/0011-translation-and-inspector-ui.md) and [validation](phase-09-validation.md). Editor navigation, conversational follow-ups, authenticated model quality and release gates remain pending.
 
+## Phase 10 — Developer experience and configuration
+
+- Owner-authorized Phase 10 retains DevAnalyst identity and React + Vite scope. Trusted typed configuration loads at Vite root with per-mode overrides, inline precedence, strict defaults/validation and actionable safe diagnostics.
+- CLI setup/doctor/status/cache/analyze/open reuse existing Node services; normal Vite development automatically manages the bridge. Doctor distinguishes Claude installation/capability/auth status from live inference. Cache administration is offline.
+- Configurable physical-key shortcuts, deterministic/AI depth, route/file exclusions, fixed VS Code/Cursor editor launch with shared workspace/position/revision guards and opt-in structured debug events.
+- See [reference](configuration.md), [ADR 0012](adr/0012-developer-configuration-cli-editor.md) and [validation](phase-10-validation.md). Native executable fixtures validate exact editor arguments; interactive GUI/Windows behavior and live authenticated inference remain unverified. No commit, publication or later phase is implied.
+
+## Phase 11 — Framework adapters
+
+- Eleven active packages and four apps; shared Node services extracted into `@devanalyst/server`, preserving Vite public compatibility reexports and existing Phase 10 changes.
+- Concrete source adapter contract, framework-neutral browser registry/UI, separate React-ref and Vue-template/public-directive mapping. Original SFC hashes/ranges, template conditions/events and explicit Composition API evidence feed shared workers, guarded Claude and SQLite.
+- Next public custom dev server, Webpack/Turbopack compiler hooks, owner-only compiler IPC and explicit client-only mapping; server component/action execution remains unavailable. Nuxt public module/Vite/listen/page hooks reuse the shared services.
+- Native browser tests cover exact source/navigation/pre-analysis/HMR/state/hydration/keyed instances and native production builds check exclusion. See [guide](frameworks.md), [ADR](adr/0013-framework-adapters.md) and [validation](phase-11-validation.md) for actual results, commands and unsupported configurations.
+- No commit, push, publication, external service change or later phase is authorized. Live authenticated AI, interactive editor GUI and full product/release completion remain pending.
+
+## Owner follow-up — Interactive hover and commerce playgrounds
+
+- All four active apps now offer realistic synthetic commerce workflows with real process-local APIs, filters/pagination, guarded edits/approval, error/retry, CSV and responsive layout. Existing mapping/HMR/route lab controls remain.
+- Hover panels can be entered, scrolled and used without retargeting while pointer/focus stays inside. Short dwell/transfer protection, viewport-constrained height and corrected descendant `pointerleave` handling preserve native actions; AI remains explicitly opt-in and is not dispatched by panel entry.
+- See [usage](playgrounds.md), [ADR 0014](adr/0014-interactive-hover-and-commerce-playgrounds.md) and [executed validation](hover-playground-validation.md). This follow-up does not authorize another phase or release.
+
 ## Current product status
 
 | Area                             | Status                                                                                                                                                                                                                                   |
@@ -78,26 +107,21 @@ See [Phase 02 validation](phase-02-validation.md) for exact final executed check
 | React source analysis            | Safe JSX mapping plus bounded source analysis for components/props/conditions/handlers/hooks/state/API/navigation; runtime outcomes remain unverified                                                                                    |
 | Claude, translation, follow-ups  | Node provider plus progressive source-backed translation/analysis UI implemented; explicit opt-in, digest-only browser requests and separate translation cache; follow-ups/live authenticated quality pending                            |
 | Pre-analysis/persistent cache    | Phase 07 scheduling, AST workers, progressive status and hash-validated memory reuse implemented; worker-owned SQLite layers, watcher invalidation and inspection/clearing added by Phase 08; whole-project latency benchmarking pending |
-| CLI/configuration/editor         | Help/version/dev/doctor and schema validation implemented; config-file loader, operational utilities/editor opening pending                                                                                                              |
-| Complete testing/release         | Phase 02–09 infrastructure/browser/mapping/static/provider/pre-analysis/cache/inspector gates implemented; live authenticated AI, later feature journeys and release preparation pending                                                 |
+| CLI/configuration/editor         | Typed file/mode/inline configuration, setup/doctor/status/cache/analyze/open, Claude/bridge diagnostics, shortcuts/depth/exclusions/debug and guarded VS Code/Cursor source navigation implemented                                       |
+| Complete testing/release         | Phase 02–11 infrastructure/browser/mapping/static/provider/pre-analysis/cache/inspector/config/editor gates implemented; live authenticated AI, later feature journeys and release preparation pending                                   |
 
 Runtime guards and passing infrastructure tests do not establish complete source mapping, provider security, source-backed inspector explanations, or product readiness.
 
 ## Retained historical work and usage
 
-| Historical artifact                                                   | Current disposition                                                                                                              |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/next-plugin`, `packages/vue-plugin`                         | Original configuration interfaces/manifests retained; excluded from active workspace, references, checks, and release scope      |
-| `apps/playground-next`, `apps/playground-vue`, `apps/playground-nuxt` | Source/configuration retained; excluded from active installation, startup, lint/type/build, browser tests, and CI                |
-| `tests/unit/boundaries.test.ts`, `tests/e2e/playgrounds.spec.ts`      | Preserved historical tests; active React-only boundary and bridge suites have separate targets                                   |
-| Previous dependency/importer entries                                  | Removed from the active lockfile through pnpm regeneration; retained historical manifests are not workspace installation targets |
+Phase 11 reactivates `packages/next-plugin`, `packages/vue-plugin` and the Next/Vue/Nuxt apps with real implementation and verification. Their prior counters/source remain extended rather than deleted. New packages are `server` and `nuxt-module`. Lockfile importers and workspace targets include only the eleven libraries and four apps.
 
-These are preserved files, not current support or future implementation commitments. Do not develop, configure, install dependencies for, or execute unsupported framework work. Deleting completed source still requires explicit owner approval.
+Historical `tests/unit/boundaries.test.ts` and `tests/e2e/playgrounds.spec.ts` remain preserved and excluded; the active boundary checker and `frameworks.spec.ts` cover current behavior. Further frameworks remain unauthorized. Deleting unrelated or completed source still requires explicit owner approval.
 
 ## Remaining delivery gates
 
-Deliver inspector analysis presentation and richer source evidence/editor integration, opt-in read-only Claude explanations/translation/follow-ups, whole-project cache/performance hardening, editor navigation, configuration/diagnostics completion, measured performance, accessibility/failure hardening, and release preparation. Resolve NPM scope ownership/licensing/release policy before release. Keep all F01–F18 acceptance criteria; no publication or later phase is authorized by this status update.
+Deliver conversational follow-ups, authenticated model quality verification, whole-project cache/performance hardening, wider accessibility/failure coverage and release preparation. Phase 10 delivers configuration/diagnostics and source editor navigation within its documented native local envelope. Resolve NPM scope ownership/licensing/release policy before release. Keep all F01–F18 acceptance criteria; no publication or later phase is authorized by this status update.
 
 ## Future Roadmap
 
-Next.js, Vue, Nuxt, Angular, Svelte, and other frameworks have no active milestones or tests. Expansion requires explicit owner authorization after complete React + Vite delivery.
+Angular, Svelte and further integrations require separate owner authorization. Phase 11 does not automatically begin subsequent work.

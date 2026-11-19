@@ -40,7 +40,9 @@
     "magic-string": "1.4.5",
     "picomatch": "4.0.7",
     "typescript": "6.0.3",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "@vue/compiler-sfc": "3.5.45",
+    "@vue/compiler-dom": "3.5.45"
   },
   "devDependencies": {
     "@types/picomatch": "^4.0.0"

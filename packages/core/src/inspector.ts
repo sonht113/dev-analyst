@@ -7,6 +7,7 @@ export const inspectorItemSchema = z
     group: z.enum([
       'translation',
       'purpose',
+      'value',
       'visibility',
       'disabled',
       'handler',

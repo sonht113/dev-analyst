@@ -1,6 +1,6 @@
 # DevAnalyst project constitution
 
-Status: foundational requirements supplied in Prompt 00, amended by the owner’s current React + Vite scope restriction. This restriction supersedes earlier multi-framework plans; all product capabilities and engineering standards remain required. Planned capabilities are requirements, not claims of implemented behavior.
+Status: foundational requirements supplied in Prompt 00. The owner explicitly authorized Phase 11 to add Next.js + React, Vue 3 + Vite and Nuxt 4 alongside React + Vite, superseding the prior React-only restriction for these targets ([ADR 0013](adr/0013-framework-adapters.md)). All product capabilities and engineering standards remain required. Planned capabilities are requirements, not claims of implemented behavior.
 
 ## 1. Project identity
 
@@ -12,8 +12,8 @@ Status: foundational requirements supplied in Prompt 00, amended by the owner’
 - Configuration file: `devanalyst.config.ts`.
 - Primary AI integration: Claude Code CLI.
 - Primary language: TypeScript.
-- Only current supported framework combination: React + Vite + TypeScript.
-- Other framework integrations are deferred to the Future Roadmap and require an explicit owner scope change.
+- Authorized targets: React + Vite, Next.js + React, Vue 3 + Vite and Nuxt 4, within the [tested envelope](frameworks.md).
+- Further frameworks require a new explicit owner scope change.
 
 Use only the current project identity in source, documentation, package metadata, and UI. Build a production-grade, open-source-ready product with correctness, security, developer experience, performance, maintainability, and extensibility as priorities.
 
@@ -89,8 +89,12 @@ Active package boundaries:
 - `@devanalyst/ai`
 - `@devanalyst/cache`
 - `@devanalyst/cli`
+- `@devanalyst/server`
+- `@devanalyst/next-plugin`
+- `@devanalyst/vue-plugin`
+- `@devanalyst/nuxt-module`
 
-The only active playground is React + Vite (`apps/playground-react`). Retained historical framework artifacts are documented in [progress](progress.md); they are excluded from the active product plan and are preserved pending an explicit disposition decision.
+Active playgrounds are React/Vite, Next/React, Vue/Vite and Nuxt under `apps/`. See [structure](repository-structure.md) and [framework limits](frameworks.md). Unrelated historical tests remain preserved and excluded.
 
 Avoid circular dependencies. Separate browser and Node.js runtimes. Keep React-specific source instrumentation and Vite integration focused, AI provider execution behind its existing contract, and cache infrastructure separate from analysis logic. Do not introduce generic framework adapter layers without an immediate technical requirement. Browser packages must not import Node.js modules. Use explicit package exports, avoid exposing internals, maintain stable shared contracts, and create abstractions only for clear use cases. Document technical reasons for structural changes.
 
@@ -180,7 +184,7 @@ Every major feature requires tests.
 
 Never claim unexecuted tests passed, delete failing tests to make CI green, weaken assertions to hide defects, or mock the feature under test in its primary integration test. Fix root causes and add regression tests. Document checks that cannot run in the environment.
 
-Before completing an implementation phase, run lint, typecheck, unit tests, relevant integration tests, build, and relevant E2E tests for React + Vite and the active shared packages. Follow [testing](testing.md) for the active React-only commands and retained historical exclusions. Product completion requires the full [Definition of Done](implementation-plan.md#definition-of-done).
+Before completing an implementation phase, run lint, typecheck, unit tests, relevant integration tests, build, and relevant E2E tests for all four authorized framework targets and active shared packages. Follow [testing](testing.md) for current commands and retained historical exclusions. Product completion requires the full [Definition of Done](implementation-plan.md#definition-of-done).
 
 ## 14. Coding standards
 
@@ -206,4 +210,4 @@ The supplied before-coding instructions require reading `AGENTS.md` and begin a 
 
 ## Future Roadmap
 
-Next.js, Vue, Nuxt, Angular, Svelte, and other frameworks are outside the current implementation, configuration, dependency, playground, testing, optimization, and release scope. They are possibilities for later owner-approved scope changes only, after complete React + Vite support is delivered. Do not create packages, empty adapters, or generic compatibility infrastructure for them now. Completion of React + Vite does not itself authorize expansion.
+Angular, Svelte and further frameworks require a separate owner scope change. Phase 11 authorizes only Next/React, Vue/Vite and Nuxt alongside React/Vite; no later phase, generic placeholders or publication is implied.

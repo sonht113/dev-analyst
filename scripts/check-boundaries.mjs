@@ -20,8 +20,20 @@ export async function readWorkspaces(root) {
     const entries = await readdir(resolve(root, group), { withFileTypes: true });
     const allowed =
       group === 'packages'
-        ? new Set(['core', 'vite-plugin', 'inspector', 'analyzer', 'ai', 'cache', 'cli'])
-        : new Set(['playground-react']);
+        ? new Set([
+            'core',
+            'vite-plugin',
+            'inspector',
+            'analyzer',
+            'ai',
+            'cache',
+            'cli',
+            'server',
+            'next-plugin',
+            'vue-plugin',
+            'nuxt-module',
+          ])
+        : new Set(['playground-react', 'playground-next', 'playground-vue', 'playground-nuxt']);
     for (const entry of entries.filter((value) => value.isDirectory() && allowed.has(value.name))) {
       const directory = resolve(root, group, entry.name);
       /** @type {Manifest} */

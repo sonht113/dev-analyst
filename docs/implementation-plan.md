@@ -1,6 +1,6 @@
 # DevAnalyst implementation plan
 
-**React + Vite + TypeScript is the only currently supported framework combination.** This plan retains the complete product feature set, including Claude Code CLI integration, browser inspection, and React source analysis. It schedules no other framework work. The [permanent scope rule](../AGENTS.md) and [ADR 0003](adr/0003-react-vite-scope.md) take precedence over historical prompts.
+**The owner authorized Phase 11 to add Next.js + React, Vue 3 + Vite and Nuxt 4 alongside React + Vite.** [ADR 0013](adr/0013-framework-adapters.md) supersedes the historical React-only restriction for these targets. Existing capabilities and evidence/privacy/release standards remain required; support is limited to [tested configurations](frameworks.md).
 
 This document is a roadmap, not authorization to begin a development phase. Phase 02 was explicitly authorized for Vite integration and the local bridge; see [progress](progress.md) and the [Phase 02 report](phase-02-validation.md) for actual status. The owner separately authorized **Phase 03 — Browser Element Inspector**, delivered before React mapping; see [ADR 0005](adr/0005-browser-element-inspector.md). The owner then authorized **Phase 04 — Reliable DOM-to-Source Mapping**; see [ADR 0006](adr/0006-react-source-mapping.md). The owner then authorized **Phase 05 — Static Code Analysis Engine**; see [ADR 0007](adr/0007-static-analysis-engine.md). The owner then authorized **Phase 06 — Claude Code CLI AI Integration**; see [ADR 0008](adr/0008-claude-code-provider.md). Later work does not begin automatically.
 
@@ -31,7 +31,7 @@ All rows are mandatory before product completion. Evidence-first findings, priva
 
 ## Active implementation sequence
 
-The phases below are planned work, with execution requiring a separate owner request. They all target React + Vite.
+The phases below are planned work, with execution requiring a separate owner request. The historical phases below targeted React + Vite; the separately authorized Phase 11 extends the implementation.
 
 | Phase                                                       | Deliverables                                                                                                                             | Exit criteria                                                                                                                              |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -47,6 +47,14 @@ The phases below are planned work, with execution requiring a separate owner req
 
 Dependencies between these phases may justify scoped sequencing adjustments documented in an ADR. They do not authorize dropping features or creating generic framework compatibility infrastructure. Disposition of preserved historical code requires explicit owner approval; it is not a deletion step implied by this plan.
 
+## Owner-authorized Phase 10 — Developer Experience and Configuration
+
+The owner separately authorized typed configuration/environment support, operational CLI commands, Claude/bridge diagnostics, configurable shortcuts/depth/exclusions, VS Code/Cursor navigation, safe path/position checks, actionable errors and opt-in debug logging. Delivery retains DevAnalyst identity and React + Vite scope. See [ADR 0012](adr/0012-developer-configuration-cli-editor.md), [reference](configuration.md) and [validation](phase-10-validation.md). This is the active delivery for F15/F17; historical sequence labels above do not authorize additional work. Conversational follow-ups and complete release gates remain required.
+
+## Owner-authorized Phase 11 — Framework adapters
+
+Independent React/Next JSX and Vue/Nuxt SFC strategies, neutral browser inspection and shared Node services, native development integrations, honest client/server boundaries, original evidence, route-aware pre-analysis, shared enforced Claude/cache/UI, development-only production exclusion and realistic framework playground/integration tests. See [architecture](architecture.md), [setup/limits](frameworks.md), [ADR 0013](adr/0013-framework-adapters.md) and [validation](phase-11-validation.md). This authorization does not start another phase or resolve pending product/release gates.
+
 ## Definition of Done
 
 DevAnalyst is complete only when all of the following hold for React + Vite:
@@ -60,9 +68,9 @@ DevAnalyst is complete only when all of the following hold for React + Vite:
 - Production builds contain no inspector injection, running AI bridge, development endpoints, or leaked local source paths, with automated proof. DevAnalyst failures do not block the host app or HMR.
 - Accessibility, themes, keyboard/mouse operation, scrolling/resizing, SPA navigation, lazy loading, loading/error states, disconnects, source changes during analysis, and recovery are covered.
 - Performance is measured under documented conditions, including the cached response target below 100 ms and bounded depth, queues, concurrency, and memory; limitations and regressions are recorded honestly.
-- React-only lint, typecheck, unit/integration tests, builds, E2E journeys, package/export/dependency-boundary checks, and CI pass. Historical framework checks are not release gates for the current product.
+- Lint, typecheck, unit/integration tests, native builds, E2E journeys and package/export/boundary checks cover all authorized framework targets. Unsupported configurations remain explicit.
 - Configuration, diagnostics, CLI, executable documentation, install/build/package workflows, security/privacy guidance, and release artifacts are ready. NPM scope ownership, licensing, versioning, and release policy are resolved before release; package publication requires explicit authorization.
 
 ## Future Roadmap
 
-Next.js, Vue, Nuxt, Angular, Svelte, and other frameworks are deferred possibilities with no active phase, deliverable, dependency, package, playground, adapter, or test allocation. Finish complete React + Vite support before considering them. Any expansion requires an explicit project-owner scope change and an ADR; completing this roadmap does not automatically authorize another framework.
+Further frameworks require explicit owner authorization. Angular/Svelte integrations, later phases and publication are outside Phase 11.

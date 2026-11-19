@@ -20,6 +20,7 @@ const nodeIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const staticRelationSchema = z.object({
   kind: z.enum([
     'component',
+    'value',
     'prop',
     'relationship',
     'condition',
@@ -61,7 +62,7 @@ function sensitivePath(file: string): boolean {
   return (
     /(?:^|\/)(?:\.claude|\.codex|\.agents|\.aws|\.azure|\.gcloud)(?:\/|$)/i.test(file) ||
     /(?:^|[/._-])(?:secrets?|credentials?|passwords?|tokens?)(?:[/._-]|$)/i.test(file) ||
-    !/\.[cm]?[jt]sx?$/i.test(file)
+    !/(?:\.[cm]?[jt]sx?|\.vue)$/i.test(file)
   );
 }
 export function hash(text: string): string {

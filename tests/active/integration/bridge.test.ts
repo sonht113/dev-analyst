@@ -48,7 +48,12 @@ function origin(server: ViteDevServer): string {
 
 async function start(
   options: ViteIntegrationOptions = {},
-  extra: { base?: string; mode?: string; resolve?: { alias: Record<string, string> } } = {},
+  extra: {
+    base?: string;
+    mode?: string;
+    resolve?: { alias: Record<string, string> };
+    customLogger?: ReturnType<typeof createLogger>;
+  } = {},
 ): Promise<{
   root: string;
   server: ViteDevServer;
@@ -69,7 +74,7 @@ async function start(
     configFile: false,
     plugins: [plugin],
     ...extra,
-    customLogger: createLogger('silent'),
+    customLogger: extra.customLogger ?? createLogger('silent'),
     server: { host: '127.0.0.1', port: 0 },
   });
   cleanup.push(() => server.close());
@@ -139,6 +144,53 @@ async function reserve(): Promise<{ http: Server; port: number }> {
 }
 
 describe('real Vite and authenticated bridge', () => {
+  it.each(['info', 'debug'] as const)(
+    'keeps debug events opt-in and excludes private route payloads at %s',
+    async (logLevel) => {
+      const logs: string[] = [];
+      const { server } = await start(
+        { config: { logLevel } },
+        { customLogger: { ...createLogger('silent'), info: (message) => logs.push(message) } },
+      );
+      const connected = connect(await bootstrap(server), origin(server));
+      await connected.ready;
+      connected.socket.send(
+        JSON.stringify({
+          version: 1,
+          id: randomUUID(),
+          timestamp: new Date().toISOString(),
+          type: 'route.changed',
+          payload: { pathname: '/PRIVATE_ROUTE' },
+        }),
+      );
+      await expect
+        .poll(() => connected.messages.some((message) => message.type === 'route.acknowledged'))
+        .toBe(true);
+      const events = logs.filter((message) => message.startsWith('{'));
+      expect(events.some((message) => message.includes('bridge.route'))).toBe(logLevel === 'debug');
+      expect(events.join('')).not.toMatch(/PRIVATE_ROUTE|token|endpoint/);
+    },
+  );
+
+  it('reports debug sink failure without crashing the host or leaking arbitrary errors', async () => {
+    const { server, plugin } = await start(
+      { config: { logLevel: 'debug' } },
+      {
+        customLogger: {
+          ...createLogger('silent'),
+          info: () => {
+            throw new Error('PRIVATE_LOG_ERROR');
+          },
+        },
+      },
+    );
+    const connected = connect(await bootstrap(server), origin(server));
+    await connected.ready;
+    await expect.poll(() => plugin.api.getSnapshot().error?.code).toBe('LOG_WRITE_FAILED');
+    expect(JSON.stringify(plugin.api.getSnapshot())).not.toContain('PRIVATE_LOG_ERROR');
+    expect((await fetch(origin(server))).status).toBe(200);
+  });
+
   it('admits only server-registered JSX sites for the active route, streams progress and removes disconnected pages', async () => {
     const { server, root, plugin } = await start(
       {},
@@ -710,6 +762,10 @@ describe('real Vite and authenticated bridge', () => {
       const disabled = await start({}, { mode: 'production' });
       expect(await (await fetch(origin(disabled.server))).text()).not.toContain('/__devanalyst/');
       const root = await fixture();
+      await writeFile(
+        join(root, 'devanalyst.config.ts'),
+        'throw new Error("Production must never evaluate DevAnalyst configuration"); export default {};',
+      );
       const plugin = devanalyst();
       await build({
         root,

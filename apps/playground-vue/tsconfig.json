@@ -5,8 +5,9 @@
     "moduleResolution": "Bundler",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["vite/client", "node"],
-    "jsx": "react-jsx",
-    "noEmit": true
+    "jsx": "preserve",
+    "noEmit": true,
+    "skipLibCheck": true
   },
   "include": ["src/**/*", "vite.config.ts"]
 }

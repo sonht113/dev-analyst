@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { withDevAnalyst } from '@devanalyst/next-plugin';
 
 const config: NextConfig = {
   reactStrictMode: true,
@@ -7,4 +8,4 @@ const config: NextConfig = {
   typescript: { tsconfigPath: 'tsconfig.build.json' },
 };
 
-export default config;
+export default withDevAnalyst(config);

@@ -1,3 +1,4 @@
+import { parseVueSource } from './vue-source.js';
 import ts from 'typescript';
 import { posix, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -5,13 +6,14 @@ import { DevAnalystError, type AnalysisDiagnostic, type SourceReference } from '
 import { createWorkspaceAccess } from './workspace.js';
 import type { AnalysisBudget } from './analysis-options.js';
 import { AnalysisStop, type ResolvedAnalyzerOptions } from './analysis-options.js';
-import { sourceOf, virtualRoot } from './syntax.js';
+import { sourceOf, virtualRoot, registerOriginalSource } from './syntax.js';
 export interface ModuleImport {
   readonly specifier: string;
   readonly node: ts.Node;
   readonly target: string | null;
 }
 export interface StaticProject {
+  readonly originals: ReadonlyMap<string, string>;
   readonly program: ts.Program;
   readonly checker: ts.TypeChecker;
   readonly files: ReadonlyMap<string, ts.SourceFile>;
@@ -314,6 +316,10 @@ export async function loadProject(
             ].map((extension) => base + extension),
           ];
       for (const candidate of new Set(candidates)) await read(candidate);
+      if (base.endsWith('.vue')) {
+        const canonical = aliases.get(base);
+        if (canonical && texts.has(canonical)) return canonical;
+      }
     }
     const resolved = ts.resolveModuleName(
       specifier,
@@ -352,7 +358,9 @@ export async function loadProject(
     }
     if (visited.has(file)) continue;
     visited.add(file);
-    if (!/\.(?:ts|tsx|js|jsx|mjs|cjs)$/.test(file)) {
+    const vue =
+      file.endsWith('.vue') && (options.framework === 'vue-vite' || options.framework === 'nuxt');
+    if (!vue && !/\.(?:ts|tsx|js|jsx|mjs|cjs)$/.test(file)) {
       diagnostic({
         code: 'UNSUPPORTED_SOURCE_FORMAT',
         message: 'Only TypeScript/JavaScript source modules are parsed.',
@@ -360,7 +368,47 @@ export async function loadProject(
       });
       continue;
     }
-    const sf = ts.createSourceFile(virtualRoot + file, code, ts.ScriptTarget.ES2022, true);
+    let projected = code;
+    if (vue) {
+      try {
+        projected = parseVueSource(code, file).projection;
+      } catch {
+        diagnostic({
+          code: 'UNSUPPORTED_SFC',
+          message: 'Unsupported or malformed SFC; no template/source mapping is claimed.',
+          source: { file, start: null, end: null },
+        });
+        continue;
+      }
+    }
+    const sf = ts.createSourceFile(
+      virtualRoot + file + (vue ? '.__devanalyst_script.ts' : ''),
+      projected,
+      ts.ScriptTarget.ES2022,
+      true,
+      vue ? ts.ScriptKind.TS : undefined,
+    );
+    if (
+      options.framework === 'next-react' &&
+      sf.statements.some(
+        (statement) =>
+          (ts.isImportDeclaration(statement) &&
+            ts.isStringLiteral(statement.moduleSpecifier) &&
+            statement.moduleSpecifier.text === 'server-only') ||
+          (ts.isExpressionStatement(statement) &&
+            ts.isStringLiteral(statement.expression) &&
+            statement.expression.text === 'use server'),
+      )
+    ) {
+      diagnostic({
+        code: 'SERVER_BOUNDARY',
+        message:
+          'Server-only/action source boundary is not executed or traced as a browser function.',
+        source: { file, start: null, end: null },
+      });
+      continue;
+    }
+    if (vue) registerOriginalSource(sf, file);
     asts.set(file, sf);
     const moduleImports: ModuleImport[] = [];
     const stack: ts.Node[] = [sf];
@@ -392,13 +440,14 @@ export async function loadProject(
     imports.set(file, moduleImports);
   }
   const invalid = new Set<string>();
+  const byVirtualName = new Map([...asts].map(([file, sf]) => [sf.fileName, file]));
+  const originalName = (name: string) => byVirtualName.get(name) ?? name.slice(virtualRoot.length);
+  const virtualName = (file: string) => asts.get(file)?.fileName ?? virtualRoot + file;
   const makeProgram = () => {
     const compilerHost: ts.CompilerHost = {
       ...host,
       getSourceFile: (name) =>
-        invalid.has(name.slice(virtualRoot.length))
-          ? undefined
-          : asts.get(name.slice(virtualRoot.length)),
+        invalid.has(originalName(name)) ? undefined : asts.get(originalName(name)),
       writeFile: () => undefined,
       getDefaultLibFileName: () => '',
       getCurrentDirectory: () => virtualRoot,
@@ -408,25 +457,27 @@ export async function loadProject(
       resolveModuleNames: (names, containing) =>
         names.map((name) => {
           const edge = imports
-            .get(containing.slice(virtualRoot.length))
+            .get(originalName(containing))
             ?.find((item) => item.specifier === name);
           if (!edge?.target || invalid.has(edge.target)) return undefined;
-          const extension = edge.target.endsWith('.tsx')
-            ? ts.Extension.Tsx
-            : edge.target.endsWith('.jsx')
-              ? ts.Extension.Jsx
-              : edge.target.endsWith('.ts')
-                ? ts.Extension.Ts
-                : ts.Extension.Js;
+          const extension = edge.target.endsWith('.vue')
+            ? ts.Extension.Ts
+            : edge.target.endsWith('.tsx')
+              ? ts.Extension.Tsx
+              : edge.target.endsWith('.jsx')
+                ? ts.Extension.Jsx
+                : edge.target.endsWith('.ts')
+                  ? ts.Extension.Ts
+                  : ts.Extension.Js;
           return {
-            resolvedFileName: virtualRoot + edge.target,
+            resolvedFileName: virtualName(edge.target),
             extension,
             isExternalLibraryImport: false,
           };
         }),
     };
     return ts.createProgram(
-      [...asts.keys()].filter((file) => !invalid.has(file)).map((file) => virtualRoot + file),
+      [...asts.keys()].filter((file) => !invalid.has(file)).map((file) => virtualName(file)),
       compilerOptions,
       compilerHost,
     );
@@ -448,7 +499,12 @@ export async function loadProject(
     program = makeProgram();
   }
   const hashes = Object.fromEntries(
-    [...asts].map(([file, sf]) => [file, createHash('sha256').update(sf.text).digest('hex')]),
+    [...asts].map(([file, sf]) => [
+      file,
+      createHash('sha256')
+        .update(texts.get(file) ?? sf.text)
+        .digest('hex'),
+    ]),
   );
   budget.check();
   const missingDependencies: string[] = [];
@@ -458,6 +514,7 @@ export async function loadProject(
     budget.check();
   }
   return {
+    originals: texts,
     program,
     checker: program.getTypeChecker(),
     files: asts,

@@ -48,9 +48,46 @@ export const bridgeOptionsSchema = z.strictObject({
 export type BridgeOptionsInput = z.input<typeof bridgeOptionsSchema>;
 export type BridgeOptions = z.output<typeof bridgeOptionsSchema>;
 
+const shortcutSchema = z
+  .string()
+  .max(64)
+  .regex(/^(?:(?:Alt|Control|Meta|Shift)\+)+(?:Key[A-Z]|F(?:[1-9]|1[0-2]))$/);
+
 /** Validated defaults are local, bounded, and do not opt the developer into AI. */
 export const configSchema = z
   .strictObject({
+    bridge: bridgeOptionsSchema.prefault({}),
+    analysis: z
+      .strictObject({ depth: z.enum(['shallow', 'standard', 'deep']).default('standard') })
+      .prefault({}),
+    routes: z
+      .strictObject({
+        exclude: z
+          .array(
+            z
+              .string()
+              .min(1)
+              .max(512)
+              .startsWith('/')
+              .refine(
+                (value) =>
+                  !/[?#]/.test(value) &&
+                  [...value].every(
+                    (character) => character.charCodeAt(0) >= 32 && character.charCodeAt(0) !== 127,
+                  ),
+                'Use a pathname glob without query, fragment or control characters',
+              ),
+          )
+          .max(100)
+          .default([]),
+      })
+      .prefault({}),
+    editor: z
+      .strictObject({
+        enabled: z.boolean().default(true),
+        command: z.enum(['code', 'cursor']).default('code'),
+      })
+      .prefault({}),
     workspaceRoot: z.string().trim().min(1).max(4096).default('.'),
     source: z
       .strictObject({
@@ -82,6 +119,13 @@ export const configSchema = z
     inspector: z
       .strictObject({
         enabled: z.boolean().default(true),
+        shortcuts: z
+          .strictObject({
+            toggle: shortcutSchema.default('Alt+Shift+KeyI'),
+            pin: shortcutSchema.default('Alt+KeyP'),
+            copy: shortcutSchema.default('Alt+KeyC'),
+          })
+          .prefault({}),
         theme: z.enum(['system', 'light', 'dark']).default('system'),
         language: z.enum(['ja', 'vi', 'en']).default('en'),
       })
@@ -89,6 +133,17 @@ export const configSchema = z
     logLevel: logLevelSchema.default('info'),
   })
   .superRefine((config, context) => {
+    const shortcuts = Object.values(config.inspector.shortcuts);
+    const normalized = shortcuts.map((shortcut) => shortcut.split('+').sort().join('+'));
+    if (
+      new Set(normalized).size !== normalized.length ||
+      shortcuts.some((shortcut) => new Set(shortcut.split('+')).size !== shortcut.split('+').length)
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['inspector', 'shortcuts'],
+        message: 'Use distinct shortcuts without repeated modifiers',
+      });
     if (config.ai.enabled && config.ai.permittedPaths.length === 0) {
       context.addIssue({
         code: 'custom',

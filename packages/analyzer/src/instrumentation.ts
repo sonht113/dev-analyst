@@ -12,6 +12,8 @@ import {
 
 export interface MappingDiagnostic {
   readonly code:
+    | 'SERVER_BOUNDARY'
+    | 'UNSUPPORTED_SFC'
     | 'EXISTING_REF'
     | 'SPREAD_PROPS'
     | 'CUSTOM_ELEMENT'

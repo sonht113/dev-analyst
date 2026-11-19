@@ -29,9 +29,12 @@ async function open(page: Page, selector = '#save') {
   await page.locator(selector).click({ modifiers: ['Alt'], position: { x: 1, y: 1 } });
   await expect.poll(() => state(page)).not.toBeNull();
 }
-async function start() {
+async function start(depth: 'shallow' | 'standard' | 'deep' = 'standard') {
   plugin = devanalyst({
-    config: { ai: { enabled: true, permittedPaths: ['src/**'], timeoutMs: 8000 } },
+    config: {
+      analysis: { depth },
+      ai: { enabled: true, permittedPaths: ['src/**'], timeoutMs: 8000 },
+    },
     preanalysis: { claude: { executable: cli.executable } },
   });
   server = await createServer({
@@ -101,6 +104,15 @@ test('hover renders lightweight translation without AI and preserves ordinary ho
   await expect(panel(page)).toHaveAttribute('role', 'tooltip');
   await expect(panel(page).locator('[data-testid="translation-text"]')).toHaveText('Lưu');
   await expect(panel(page).locator('.analysis-content')).toBeHidden();
+  const bounds = await panel(page).boundingBox();
+  if (!bounds) throw new Error('Hover preview has no layout');
+  await page.mouse.move(bounds.x + 12, bounds.y + 12);
+  await expect(panel(page)).toHaveAttribute('role', 'region');
+  await page.getByLabel('Display language', { exact: true }).focus();
+  await page.mouse.wheel(0, 180);
+  expect(await inferenceCount()).toBe(before);
+  await page.keyboard.press('Escape');
+  await expect(panel(page)).toBeHidden();
   await page.locator('#counter').click();
   await expect(page.locator('#counter')).toHaveText('Count 1');
   expect(await inferenceCount()).toBe(before);
@@ -117,6 +129,11 @@ test('Alt+Click progressively displays scoped evidence, call chains and independ
     .toBe('READY');
   expect((await state(page))?.ai.state).not.toBe('READY');
   await expect(panel(page).locator('#hint')).toContainText('App · src/App.tsx');
+  await expect(panel(page).locator('.technical-details')).not.toHaveAttribute('open');
+  await expect(panel(page).locator('[data-flow="visibility"]')).toContainText('visible');
+  await expect(panel(page).locator('[data-flow="interaction"]')).toContainText('/orders');
+  await expect(panel(page).locator('[data-flow="interaction"]')).toContainText('/api/orders');
+  await expect(panel(page).locator('.inspection-filters')).toBeHidden();
   for (const group of ['handler', 'call', 'api', 'navigation', 'state', 'visibility', 'disabled'])
     await expect(panel(page).locator(`[data-group="${group}"] .finding`).first()).toBeAttached();
   await expect(panel(page).locator('[data-group="api"]')).toContainText('/api/orders');
@@ -131,6 +148,7 @@ test('Alt+Click progressively displays scoped evidence, call chains and independ
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('not-evaluated');
   const sourceLink = panel(page).locator('[data-group="handler"] .source-link').first();
   const originalUrl = page.url();
+  await panel(page).locator('.technical-details > summary').click();
   await sourceLink.click();
   await expect(sourceLink).toHaveAttribute('aria-expanded', 'true');
   await expect(panel(page).locator('[data-group="handler"] .source-code').first()).toContainText(
@@ -142,12 +160,27 @@ test('Alt+Click progressively displays scoped evidence, call chains and independ
   await page.getByRole('searchbox', { name: 'Filter call chains' }).fill('request');
   await expect(panel(page).locator('[data-group="call"] .finding').first()).toBeAttached();
   await page.getByLabel('All findings', { exact: true }).selectOption('INFERRED');
-  await expect(panel(page).locator('.confidence.verified')).toHaveCount(0);
+  await expect(panel(page).locator('.technical-details .confidence.verified')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(panel(page)).toBeHidden();
   await expect(page.locator('#counter')).toHaveText('Count 0');
   await page.locator('#counter').click();
   await expect(page.locator('#counter')).toHaveText('Count 1');
+});
+
+test('shows displayed state provenance and keeps source details collapsed for a new selection', async ({
+  page,
+}) => {
+  await open(page, '#counter');
+  await expect
+    .poll(async () => (await state(page))?.analysis.state, { timeout: 15000 })
+    .toBe('READY');
+  await expect(panel(page).locator('[data-flow="value"]')).toContainText('n');
+  await expect(panel(page).locator('[data-flow="value"]')).toContainText('useState(0)');
+  await expect(panel(page).locator('[data-flow="interaction"]')).toContainText('setN(n+1)');
+  await expect(panel(page).locator('.technical-details')).not.toHaveAttribute('open');
+  await expect(panel(page).locator('.flow-summary [data-group="purpose"]')).toHaveCount(0);
+  await expect(page.locator('#counter')).toHaveText('Count 0');
 });
 
 test('uncached source translation completes before deeper AI and repeated inspection avoids provider calls', async ({
@@ -348,4 +381,20 @@ test('translation and selected analysis survive a dev server restart without mor
   expect((await state(page))?.translation.cache).toBe('fresh');
   expect((await state(page))?.ai.cache).toBe('fresh');
   expect(await inferenceCount()).toBe(before);
+});
+
+test('changing configured analysis depth invalidates selected AI persistence', async ({ page }) => {
+  await open(page, '#rare');
+  await expect.poll(async () => (await state(page))?.ai.state, { timeout: 15000 }).toBe('READY');
+  const before = await inferenceCount();
+  await server.close();
+  await start('shallow');
+  await page.goto(url);
+  await expect
+    .poll(() => page.evaluate(() => window.__DEVANALYST_BRIDGE__?.getSnapshot().status))
+    .toBe('connected');
+  await open(page, '#rare');
+  await expect.poll(async () => (await state(page))?.ai.state, { timeout: 15000 }).toBe('READY');
+  expect((await state(page))?.ai.cache).toBe('miss');
+  expect(await inferenceCount()).toBeGreaterThan(before);
 });

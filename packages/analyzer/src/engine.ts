@@ -1,3 +1,4 @@
+import { extractVueStructure } from './vue-analysis.js';
 import type { AnalysisDiagnostic, Finding, StaticAnalysisResult } from '@devanalyst/core';
 import { DevAnalystError, findingSchema } from '@devanalyst/core';
 import type { AnalysisRequest, StaticAnalyzer } from './index.js';
@@ -61,7 +62,11 @@ export function createStaticAnalyzer(input: StaticAnalyzerOptions): StaticCodeAn
       model.index();
       const handlers = extractStructure(model),
         effects = extractCalls(model);
-      traceRoots(model, [...handlers, ...effects]);
+      const vueRoots =
+        options.framework === 'vue-vite' || options.framework === 'nuxt'
+          ? extractVueStructure(model)
+          : [];
+      traceRoots(model, [...handlers, ...effects, ...vueRoots]);
       for (const node of [...model.nodes.values()]) {
         if (node.kind === 'module' || !node.source) continue;
         const file = project.files.get(node.source.file);

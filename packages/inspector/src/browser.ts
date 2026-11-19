@@ -1,3 +1,4 @@
+import type { DevAnalystConfig, SourceReference } from '@devanalyst/core';
 import { createInspectionPanel } from './inspection-panel.js';
 import type { InspectionSnapshot } from './inspection-client.js';
 import { label, type DisplayLanguage } from './inspection-strings.js';
@@ -5,6 +6,8 @@ import { resolveElementSource } from './mapping-runtime.js';
 import { extractElementMetadata, type ElementMetadata } from './metadata.js';
 
 export interface ElementInspectorOptions {
+  readonly shortcuts?: DevAnalystConfig['inspector']['shortcuts'];
+  readonly openSource?: (source: SourceReference, revision?: string) => Promise<string>;
   readonly theme?: 'system' | 'light' | 'dark';
   readonly language?: DisplayLanguage;
   readonly onInspection?: (metadata: ElementMetadata, expanded: boolean) => void;
@@ -18,6 +21,7 @@ export interface ElementInspectorHandle {
   getSnapshot(): {
     readonly inspecting: boolean;
     readonly pinned: boolean;
+    readonly interacting: boolean;
     readonly metadata: ElementMetadata | null;
     readonly error: string | null;
     readonly inspection: InspectionSnapshot | null;
@@ -61,9 +65,11 @@ export function startElementInspector(
     .finding{padding:8px;border:1px solid #8190a555;border-radius:7px;margin:8px 0;overflow-wrap:anywhere}.finding-time,.cache-chip,.source-notice,.empty-evidence{font-size:11px;opacity:.85}
     .source-code{font:11px/1.6 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#8190a515;padding:8px;max-height:180px;overflow:auto;border-radius:5px}.call-trace{padding-left:22px;margin:6px 0}.call-trace li{padding:3px 0}
     .advanced-metadata summary{cursor:pointer;padding:8px 0}.advanced-metadata pre{max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px}
+    .flow-summary section{border-top:1px solid #8190a533;padding:8px 0}.flow-summary h4{font-size:12px;margin:0 0 6px}.flow-step{padding:5px 0}.flow-step p{display:inline;font-size:12px}.flow-step .value-binding{display:block;font-family:ui-monospace,monospace}.flow-step summary{font-size:11px;opacity:.8;cursor:pointer}.technical-details>summary{cursor:pointer;padding:10px 0;font-weight:600}.flow-explanation{border-left:2px solid #14b8a6;padding-left:8px}
     @media(max-width:480px){#panel,#panel.expanded{width:calc(100vw - 16px);max-height:72vh}.inspection-controls select{max-width:45%}}
     #panel.passive select,#panel.passive input,#panel.passive a{display:none}
     #panel.passive{pointer-events:none} #panel.passive button{display:none}
+    #hover-help{font-size:11px;opacity:.8;margin-top:8px} #panel{user-select:text}
     #menu{width:210px;display:grid;gap:6px} #heading{font-weight:700;margin:0 0 6px} #details{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0;max-height:280px;overflow:auto}
     #actions{display:flex;gap:6px;flex-wrap:wrap} #status,#hint{font-size:12px} .box{position:fixed;border:2px solid #2563eb;background:#2563eb18;pointer-events:none}
     #surface[data-theme=dark] .verified{color:#6ee7b7} #surface[data-theme=dark] .inferred{color:#fde68a} #surface[data-theme=dark] .unknown{color:#cbd5e1}
@@ -89,7 +95,22 @@ export function startElementInspector(
   const launch = make('button', 'launch');
   launch.textContent = 'DevAnalyst · Inspect';
   launch.setAttribute('aria-pressed', 'false');
-  launch.setAttribute('aria-keyshortcuts', 'Alt+Shift+I');
+  const shortcuts = options.shortcuts ?? {
+    toggle: 'Alt+Shift+KeyI',
+    pin: 'Alt+KeyP',
+    copy: 'Alt+KeyC',
+  };
+  const matchesShortcut = (event: KeyboardEvent, value: string): boolean => {
+    const parts = value.split('+');
+    return (
+      event.code === parts.at(-1) &&
+      event.altKey === parts.includes('Alt') &&
+      event.ctrlKey === parts.includes('Control') &&
+      event.metaKey === parts.includes('Meta') &&
+      event.shiftKey === parts.includes('Shift')
+    );
+  };
+  launch.setAttribute('aria-keyshortcuts', shortcuts.toggle.replace('Key', ''));
   const panel = make('section', 'panel');
   panel.hidden = true;
   panel.setAttribute('aria-label', 'Element inspector');
@@ -99,6 +120,7 @@ export function startElementInspector(
   status.setAttribute('aria-live', 'polite');
   const details = make('pre', 'details', panel);
   details.tabIndex = 0;
+  const hoverHelp = make('p', 'hover-help', panel);
   const hint = make('div', 'hint', panel);
   hint.textContent = 'DOM observation · Source UNKNOWN · No cache';
   const actions = make('div', 'actions', panel);
@@ -109,10 +131,7 @@ export function startElementInspector(
     node.addEventListener('click', action);
     return node;
   }
-  const pin = button('Pin', actions, () => {
-    pinned = !pinned;
-    render();
-  });
+  const pin = button('Pin', actions, () => togglePin());
   pin.setAttribute('aria-pressed', 'false');
   const copyAction = button('Copy', actions, () => {
     void copy();
@@ -149,6 +168,12 @@ export function startElementInspector(
   let disposed = false;
   let inspecting = false;
   let pinned = false;
+  let hoverDismissed = false;
+  let panelEngaged = false,
+    pointerInPanel = false,
+    focusInPanel = false;
+  let hoverTimer: ReturnType<typeof setTimeout> | undefined;
+  let releaseTimer: ReturnType<typeof setTimeout> | undefined;
   let detailed = false;
   let explicitlySelected = false;
   let pointerSelection = false;
@@ -192,6 +217,7 @@ export function startElementInspector(
   }
   surface.dataset['theme'] = displayTheme;
   const content = createInspectionPanel(panel, details, {
+    ...(options.openSource ? { openSource: options.openSource } : {}),
     language: displayLanguage,
     theme: displayTheme,
     mode: () => {
@@ -227,6 +253,22 @@ export function startElementInspector(
     panel.setAttribute('aria-label', label(displayLanguage, 'inspector'));
   }
   chrome();
+  function togglePin(preserveFocus = false): void {
+    pinned = !pinned;
+    if (!pinned && !preserveFocus) {
+      panelEngaged = false;
+      pointerInPanel = false;
+      focusInPanel = false;
+      hoverDismissed = true;
+      detailed = false;
+      explicitlySelected = false;
+      lastPoint = null;
+      candidate = selected;
+      clearTimeout(releaseTimer);
+      releaseTimer = undefined;
+    }
+    render();
+  }
   function restoreFocus(): void {
     if (
       previousFocus?.isConnected &&
@@ -240,6 +282,13 @@ export function startElementInspector(
     options.onClose?.();
     explicitlySelected = false;
     pointerSelection = false;
+    panelEngaged = false;
+    pointerInPanel = false;
+    focusInPanel = false;
+    clearTimeout(hoverTimer);
+    hoverTimer = undefined;
+    clearTimeout(releaseTimer);
+    releaseTimer = undefined;
     selected = null;
     candidate = null;
     lastPoint = null;
@@ -295,6 +344,7 @@ export function startElementInspector(
     else if (element !== selected) explicitlySelected = false;
     if (element === selected && full === detailed) return;
     selected = element;
+    hoverDismissed = false;
     detailed = full;
     metadata = null;
     notice = '';
@@ -374,9 +424,12 @@ export function startElementInspector(
       return;
     }
     panel.hidden = false;
-    panel.classList.toggle('passive', !detailed && !pinned);
-    panel.setAttribute('role', detailed || pinned ? 'region' : 'tooltip');
-    details.tabIndex = detailed || pinned ? 0 : -1;
+    const interactive = detailed || pinned || panelEngaged;
+    panel.classList.toggle('passive', !interactive);
+    panel.setAttribute('role', interactive ? 'region' : 'tooltip');
+    details.tabIndex = interactive ? 0 : -1;
+    text(hoverHelp, label(displayLanguage, panelEngaged ? 'previewHint' : 'hoverHint'));
+    hoverHelp.hidden = pinned;
     text(
       heading,
       `<${selected.localName}>${pinned ? ' · ' + label(displayLanguage, 'pinned') : ''}`,
@@ -385,7 +438,7 @@ export function startElementInspector(
     text(
       hint,
       mapping.status === 'VERIFIED'
-        ? `${mapping.component?.name ?? 'Component unavailable'} · ${mapping.source.file}:${mapping.source.start?.line}:${mapping.source.start?.column} · VERIFIED JSX origin`
+        ? `${mapping.component?.name ?? 'Component unavailable'} · ${mapping.source.file}:${mapping.source.start?.line}:${mapping.source.start?.column} · VERIFIED ${mapping.strategy === 'vue-directive-v1' ? 'Vue template' : 'JSX'} origin`
         : `Source UNKNOWN · ${mapping.reason} · No cache`,
     );
     if (
@@ -424,7 +477,7 @@ export function startElementInspector(
     );
     details.lang = metadata?.japaneseText.length ? 'ja' : 'und';
     if (metadata) options.onInspection?.(metadata, explicitlySelected && detailed);
-    content.update(metadata, options.getInspection?.() ?? null, detailed, detailed || pinned);
+    content.update(metadata, options.getInspection?.() ?? null, detailed, interactive);
     panel.classList.toggle('expanded', detailed);
     const bounds = rects(selected);
     boxes.replaceChildren(
@@ -436,7 +489,42 @@ export function startElementInspector(
       }),
     );
     const first = bounds[0];
-    if (first) position(panel, first.x, first.y + first.height + 8);
+    if (first) {
+      if (panelEngaged) {
+        const current = panel.getBoundingClientRect();
+        panel.style.maxHeight = `${Math.max(64, window.innerHeight - current.y - 8)}px`;
+        position(panel, current.x, current.y);
+      } else {
+        // Limit height to the available side; async results must never grow over
+        // the trigger between pointer-down and pointer-up.
+        const maximum = Math.min(
+          window.innerHeight * (detailed ? 0.78 : 0.65),
+          detailed ? 760 : 560,
+        );
+        const below = first.y + first.height + 8,
+          spaceBelow = window.innerHeight - below - 8,
+          spaceAbove = first.y - 16;
+        let top = below,
+          available = spaceBelow;
+        if (spaceBelow < 140 && spaceAbove > spaceBelow) {
+          available = spaceAbove;
+          panel.style.maxHeight = `${Math.max(64, Math.min(maximum, available))}px`;
+          top = first.y - panel.offsetHeight - 8;
+        } else if (spaceBelow < 140 && spaceAbove < 140) {
+          const point = lastPoint ? viewportPoint(lastPoint) : null;
+          const anchor = point?.y ?? Math.min(first.y + first.height, window.innerHeight / 2);
+          available = window.innerHeight - anchor - 16;
+          top = anchor + 8;
+          if (available < 140 && anchor > window.innerHeight / 2) {
+            available = anchor - 16;
+            panel.style.maxHeight = `${Math.max(64, Math.min(maximum, available))}px`;
+            top = anchor - panel.offsetHeight - 8;
+          }
+        }
+        panel.style.maxHeight = `${Math.max(64, Math.min(maximum, available))}px`;
+        position(panel, first.x, top);
+      }
+    }
   }
   async function copyValue(value: string): Promise<void> {
     if (!value) return;
@@ -464,9 +552,10 @@ export function startElementInspector(
     frame = requestAnimationFrame(() => {
       frame = 0;
       try {
-        if (!pinned && menu.hidden && lastPoint)
-          candidate = hit(lastPoint.doc, lastPoint.x, lastPoint.y);
-        if (!pinned && menu.hidden && candidate) select(candidate, detailed, 'hovered');
+        if (!pinned && !panelEngaged && menu.hidden && lastPoint) {
+          const next = hit(lastPoint.doc, lastPoint.x, lastPoint.y);
+          if (next && !inTransit(next, lastPoint)) queueHover(next, detailed);
+        }
         render();
       } catch {
         error = 'Element geometry unavailable. Select the element again.';
@@ -474,15 +563,130 @@ export function startElementInspector(
       }
     });
   }
+  // A single bounded dwell timer avoids replacing a preview while crossing to it.
+  function queueHover(element: Element, full: boolean): void {
+    if (element === selected) {
+      clearTimeout(hoverTimer);
+      hoverTimer = undefined;
+      candidate = element;
+      if (full !== detailed) select(element, full, 'hovered');
+      return;
+    }
+    if (candidate === element && hoverTimer) return;
+    candidate = element;
+    clearTimeout(hoverTimer);
+    const commit = () => {
+      hoverTimer = undefined;
+      if (!panelEngaged && !pinned && menu.hidden && candidate === element)
+        select(element, full, 'hovered');
+    };
+    if (!selected || panel.hidden) commit();
+    else hoverTimer = setTimeout(commit, 180);
+  }
+  function viewportPoint(point: {
+    x: number;
+    y: number;
+    doc: Document;
+  }): { x: number; y: number } | null {
+    let { x, y, doc } = point;
+    for (let depth = 0; doc !== document && depth < 16; depth++) {
+      const container = doc.defaultView?.frameElement;
+      if (!container) return null;
+      const bounds = container.getBoundingClientRect();
+      x =
+        bounds.x +
+        ((container.clientLeft + x) * bounds.width) /
+          ((container as HTMLElement).offsetWidth || bounds.width || 1);
+      y =
+        bounds.y +
+        ((container.clientTop + y) * bounds.height) /
+          ((container as HTMLElement).offsetHeight || bounds.height || 1);
+      doc = container.ownerDocument;
+    }
+    return doc === document ? { x, y } : null;
+  }
+  function inTransit(element: Element, point: { x: number; y: number; doc: Document }): boolean {
+    if (!selected || panel.hidden || selected.contains(element)) return false;
+    const topPoint = viewportPoint(point);
+    if (!topPoint) return false;
+    const { x, y } = topPoint;
+    const origin = rects(selected)[0],
+      card = panel.getBoundingClientRect();
+    if (!origin) return false;
+    // Only the narrow strip between the trigger and card is protected. Native clicks are never intercepted here.
+    const top = Math.min(origin.y + origin.height, card.bottom),
+      bottom = Math.max(origin.y, card.top);
+    return (
+      bottom >= top &&
+      bottom - top <= 24 &&
+      y >= top - 2 &&
+      y <= bottom + 2 &&
+      x >= Math.min(origin.x, card.left) - 4 &&
+      x <= Math.max(origin.x + origin.width, card.right) + 4
+    );
+  }
   function pointer(event: PointerEvent): void {
     if (owned(event) || pinned || !menu.hidden) return;
     const element = target(event);
     if (!element) return;
     lastPoint = { x: event.clientX, y: event.clientY, doc: element.ownerDocument };
-    candidate = element;
-    // Alt hover expands metadata while ordinary hover remains passive.
-    detailed = inspecting || event.altKey;
+    if (panelEngaged) return;
+    const card = panel.getBoundingClientRect();
+    const topPoint = viewportPoint(lastPoint);
+    // Read-only previews remain click-through until the pointer deliberately enters
+    // their bounds. Descendants of a large trigger still receive native actions.
+    const inside =
+      !!topPoint &&
+      topPoint.x >= card.left &&
+      topPoint.x <= card.right &&
+      topPoint.y >= card.top &&
+      topPoint.y <= card.bottom;
+    if (!inside) hoverDismissed = false;
+    const nestedControl =
+      selected?.contains(element) &&
+      element.closest(
+        'button,a[href],input,select,textarea,summary,[contenteditable],[role=button]',
+      );
+    if (!panel.hidden && !hoverDismissed && inside && !nestedControl) {
+      pointerInPanel = true;
+      engagePanel();
+      return;
+    }
+    if (inTransit(element, lastPoint)) {
+      clearTimeout(hoverTimer);
+      hoverTimer = undefined;
+      candidate = selected;
+      return;
+    }
+    queueHover(element, inspecting || event.altKey);
     schedule();
+  }
+  function engagePanel(): void {
+    if (!selected || panel.hidden || disposed) return;
+    clearTimeout(releaseTimer);
+    releaseTimer = undefined;
+    clearTimeout(hoverTimer);
+    hoverTimer = undefined;
+    candidate = selected;
+    lastPoint = null;
+    if (!panelEngaged) {
+      if (document.activeElement !== host) previousFocus ??= document.activeElement;
+      panelEngaged = true;
+      render();
+    }
+  }
+  function releasePanel(): void {
+    clearTimeout(releaseTimer);
+    releaseTimer = setTimeout(() => {
+      releaseTimer = undefined;
+      if (disposed || pointerInPanel || focusInPanel) return;
+      panelEngaged = false;
+      if (!pinned && lastPoint) {
+        const next = hit(lastPoint.doc, lastPoint.x, lastPoint.y);
+        if (next) queueHover(next, inspecting);
+      }
+      schedule();
+    }, 180);
   }
   function pointerDown(event: PointerEvent): void {
     pointerSelection = false;
@@ -541,7 +745,7 @@ export function startElementInspector(
       'input,textarea,select,[contenteditable]:not([contenteditable="false"])',
     );
     if (event.key === 'Escape' && (inspecting || pinned || !panel.hidden || !menu.hidden)) {
-      if (inspecting || pinned || !menu.hidden) {
+      if (isOwned || inspecting || pinned || !menu.hidden) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
@@ -550,7 +754,7 @@ export function startElementInspector(
       else previousFocus = null;
       return;
     }
-    if (event.altKey && event.shiftKey && event.code === 'KeyI' && !editing) {
+    if (matchesShortcut(event, shortcuts.toggle) && !editing && !event.repeat) {
       event.preventDefault();
       setInspecting(!inspecting);
       return;
@@ -564,12 +768,11 @@ export function startElementInspector(
       pin.focus();
       return;
     }
-    if (isOwned && event.altKey && event.code === 'KeyP') {
+    if (isOwned && matchesShortcut(event, shortcuts.pin) && !editing && !event.repeat) {
       event.preventDefault();
-      pinned = !pinned;
-      render();
+      togglePin(true);
     }
-    if (isOwned && event.altKey && event.code === 'KeyC') {
+    if (isOwned && matchesShortcut(event, shortcuts.copy) && !editing && !event.repeat) {
       event.preventDefault();
       void copy();
     }
@@ -658,12 +861,21 @@ export function startElementInspector(
       }),
       listen(doc, 'scroll', schedule),
       listen(doc.defaultView ?? doc, 'resize', schedule),
-      listen(doc, 'pointerleave', (() => {
-        if (!pinned && !detailed) {
+      listen(doc, 'pointerleave', (event) => {
+        // Capture receives descendant pointerleave events too; leaving a trigger
+        // is not leaving its document, and must not destroy the handoff corridor.
+        if (event.target !== doc && event.target !== doc.documentElement) return;
+        if (!pinned && !panelEngaged) {
           lastPoint = null;
-          close();
+          clearTimeout(hoverTimer);
+          hoverTimer = undefined;
+          clearTimeout(releaseTimer);
+          releaseTimer = setTimeout(() => {
+            releaseTimer = undefined;
+            if (!panelEngaged && !pinned) close();
+          }, 180);
         }
-      }) as EventListener),
+      }),
     ];
     documents.set(doc, () => stops.forEach((stop) => stop()));
     observeRoot(doc);
@@ -734,6 +946,44 @@ export function startElementInspector(
   ]) {
     cleanups.push(listen(shadow, type, (event) => event.stopPropagation(), false));
   }
+  cleanups.push(
+    listen(
+      panel,
+      'pointerenter',
+      () => {
+        pointerInPanel = true;
+        engagePanel();
+      },
+      false,
+    ),
+    listen(
+      panel,
+      'pointerleave',
+      () => {
+        pointerInPanel = false;
+        releasePanel();
+      },
+      false,
+    ),
+    listen(
+      panel,
+      'focusin',
+      () => {
+        focusInPanel = true;
+        engagePanel();
+      },
+      false,
+    ),
+    listen(
+      panel,
+      'focusout',
+      () => {
+        focusInPanel = false;
+        releasePanel();
+      },
+      false,
+    ),
+  );
   cleanups.push(listen(window, 'devanalyst:bridge', schedule));
   cleanups.push(listen(window, 'devanalyst:inspection', schedule));
   cleanups.push(listen(window, 'pagehide', () => close()));
@@ -748,6 +998,7 @@ export function startElementInspector(
       return {
         inspecting,
         pinned,
+        interacting: panelEngaged,
         inspection: options.getInspection?.() ?? null,
         metadata:
           metadata && mapping

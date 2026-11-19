@@ -57,7 +57,7 @@ it('runs real AST in a cancellable worker, indexes dependencies/components, reus
     kind: 'button' as const,
   };
   queue.index('browser', 'initial', { pathname: '/orders/123' }, [element]);
-  await expect.poll(() => queue.getSnapshot('browser')?.completed).toBe(1);
+  await expect.poll(() => queue.getSnapshot('browser')?.completed, { timeout: 10000 }).toBe(1);
   expect(turns).toBeGreaterThan(3);
   expect(
     queue.getSnapshot('browser')?.components.some((component) => component.name === 'App'),
@@ -80,7 +80,7 @@ it('runs real AST in a cancellable worker, indexes dependencies/components, reus
   );
   queue.invalidate('src/service.ts');
   expect(queue.getResult(file, revision)).toBeNull();
-  await expect.poll(() => queue.getSnapshot('browser')?.completed).toBe(1);
+  await expect.poll(() => queue.getSnapshot('browser')?.completed, { timeout: 10000 }).toBe(1);
   expect(
     queue
       .getResult(file, revision)

@@ -1,24 +1,24 @@
-# React + Vite testing and acceptance
+# DevAnalyst testing and acceptance
 
-**React + Vite + TypeScript is the only currently supported framework combination.** All gates now target the seven active packages and `apps/playground-react`. Historical directories and their tests remain preserved and excluded. See [ADR 0004](adr/0004-vite-local-bridge.md) and the [Phase 02 validation report](phase-02-validation.md).
+Phase 11 extends active verification to React/Vite, Next/React (Webpack and Turbopack), Vue/Vite and Nuxt/Vite. Eleven library packages and four applications participate. Historical phase results below retain their original scope; [Phase 11 validation](phase-11-validation.md) and the [framework guide](frameworks.md) describe current support.
 
 ## Commands
 
 | Command                          | Purpose                                                                                             |
 | -------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile` | Install the nine active workspace projects, including the root                                      |
+| `pnpm install --frozen-lockfile` | Install the sixteen active workspace projects, including the root                                   |
 | `pnpm lint`                      | ESLint on active code, dependency boundaries, and formatting                                        |
-| `pnpm typecheck`                 | Build declaration prerequisites and check active libraries, tooling/tests, and React                |
+| `pnpm typecheck`                 | Build declaration prerequisites and check active libraries, tooling/tests, and all four apps        |
 | `pnpm test`                      | Build packages and run all active Vitest unit/integration tests                                     |
 | `pnpm test:unit`                 | Unit tests, excluding active integration files                                                      |
 | `pnpm test:integration`          | Real Vite/bridge, CLI/consumer startup, and production builds                                       |
-| `pnpm build`                     | Build seven libraries and the React playground                                                      |
+| `pnpm build`                     | Build eleven libraries and all four playgrounds                                                     |
 | `pnpm test:independent`          | Build each active library with generated outputs removed first                                      |
 | `pnpm test:packages`             | Public exports, private path rejection, declarations/maps, local archives, CLI smoke checks         |
 | `pnpm test:e2e`                  | Chromium route/inspector/privacy/keyboard, React HMR, lifecycle, retry, restart, and teardown tests |
 | `pnpm test:smoke`                | All unit/integration tests followed by Chromium E2E                                                 |
 
-The root `tsconfig.json` extends `tsconfig.tools.json` and references the seven active package projects directly. Editors can therefore discover the same strict tooling/test configuration checked by `pnpm typecheck`, including Node types and browser runtime globals. Files outside each package's production `include` (such as unit tests) join this root project rather than an inferred editor project. The separate `tsconfig.packages.json` still controls library-only builds.
+The root `tsconfig.json` extends `tsconfig.tools.json` and references the eleven active package projects directly. Editors can therefore discover the same strict tooling/test configuration checked by `pnpm typecheck`, including Node types and browser runtime globals. Files outside each package's production `include` (such as unit tests) join this root project rather than an inferred editor project. The separate `tsconfig.packages.json` still controls library-only builds.
 
 Install Chromium with `pnpm exec playwright install chromium`. Integration/E2E need permission to bind local loopback ports and launch browser/subprocesses. Use the environment's authorized test runner; document unavailable checks rather than substituting mocks or weakening assertions. Do not run the independence checker concurrently with builds/watchers.
 
@@ -85,6 +85,30 @@ Source-literal and selected-projection tests cover static/entity/nested text, pr
 
 The authenticated bridge verifies selected analysis when automatic page pre-analysis is disabled, forged source rejection and closed input schemas. `tests/e2e/analysis-ui.spec.ts` drives real React/Vite/Chromium, AST workers and SQLite with an owned mock Claude subprocess. It verifies no hover inference, independent fast translation, progressive source/AI findings, source links, copies, call search/confidence filtering, themes/locales/mobile/keyboard, private/runtime exclusion, HMR confidence demotion, provider failure, frame observations and no-repeat inference across dev server restart. Existing inspector tests retain host/SVG/frame/shadow/lazy/selection coverage and now assert the AI-disabled state. Production exclusion covers the new UI/transport/glossary markers. See [Phase 09 validation](phase-09-validation.md).
 
+## Phase 10 coverage
+
+Configuration tests exercise actual trusted TypeScript loading, section/array/environment/inline precedence, mandatory exclusions, safe invalid schema/import/syntax errors, shortcuts and unsafe config entries. Editor tests launch owned `code`/`cursor` executables with exact argument arrays and reject excluded/missing/traversing/symlink sources, invalid positions and stale revisions. CLI subprocess tests cover exclusive setup/no overwrite, doctor validation/Claude reporting, live/stopped/unsafe status, explicit deterministic analysis and populated SQLite clearing.
+
+`tests/e2e/developer-experience.spec.ts` uses real React/Vite/Chromium and the authenticated bridge to verify mode-configured keyboard interaction, exact mapped editor coordinates, preserved application URL, route exclusion and credential-free diagnostics. The analysis UI suite also verifies persisted selected AI is invalidated when analysis depth changes. Existing production, mapping, inspector, cache and provider suites remain required. Owned editor subprocesses prove dispatch/arguments, not installed GUI behavior; live authenticated Claude and Windows launch remain unverified. See [Phase 10 validation](phase-10-validation.md).
+
+## Phase 11 coverage
+
+Vue compiler/source-map and script/template tests preserve original UTF-16 ranges, conditions, event links, explicit Composition API facts and source hashes. Public Vue directive tests cover distinct instances/sites, unmount and stale revisions. Next tests preserve ordinary/production config and conflicting user rules. Owner-only compiler IPC tests enforce permissions, request shape, traversal rejection and cleanup. Vue worker → enforced mock-Claude subprocess → reopened SQLite proves original evidence/hash compatibility and framework identity isolation; no live model success is claimed.
+
+`tests/e2e/frameworks.spec.ts` uses real Vue, Nuxt, Next/Webpack and Next/Turbopack servers, native navigation/HMR and shared workers. It checks exact files/lines, selected analysis and pre-analysis after dynamic navigation, preserved counter state, keyed rows, async Vue source, Next server UNKNOWN, clean teardown and host usability after invalid config. Timing attachments record local selected/navigation work, not an SLA. `production-frameworks.test.ts` builds and serves all four new configurations with native tools, scans application outputs and verifies development endpoint absence. The original React suites remain regression gates.
+
+Nuxt Kit/Next/Vue Router upstream declarations currently require scoped `skipLibCheck` in the Nuxt module and relevant app boundary configs; project source remains strict, while core/shared packages keep declaration checks. Do not install unsupported framework builders to satisfy optional vendor declarations. Production checks and exact supported configurations remain required independently of typechecking.
+
+## Interactive hover and commerce follow-up
+
+`inspector.spec.ts` verifies slow gap transfer with stable source/runtime identity, internal scrolling, native text selection, pointer/focus hold, pinning and Escape focus recovery. The AI-enabled mock fixture in `analysis-ui.spec.ts` proves panel entry/focus/scroll do not dispatch inference. Existing ordinary host click/unpin/privacy/HMR/teardown gates remain required.
+
+Five `frameworks.spec.ts` commerce journeys exercise the actual React/Vue Vite middleware, Next Webpack/Turbopack route handlers and Nuxt server API: filter/pagination, role guards, pending-only edits/approval, 400/409/413/503 responses, retry, CSV contents and mobile layout. The production suites copy the new host API files and retain injection/endpoint exclusion checks. See [follow-up validation](hover-playground-validation.md) for final counts, observations and limitations. Do not run the full E2E/native server suites concurrently with unit integration polling or lint fixture walking.
+
+## Element flow follow-up
+
+The owner-requested [element flow follow-up](element-flow-validation.md) adds real JSX/Vue display-expression/declaration tests, action-guard versus rendering-guard projection coverage, public-group/browser-decoder compatibility and a Chromium state-provenance journey. Existing analysis UI tests now assert collapsed technical details and primary flow outcomes before exercising full source/filter controls. Full framework, privacy, production, HMR and host-interaction regressions remain required.
+
 ## Complete product acceptance
 
 Phase 02 infrastructure, Phase 03 local inspection, Phase 04 safe JSX mapping, Phase 05 static analysis and Phase 06 provider APIs are not completion of the entire product. Every [F01–F18 capability and Definition of Done](implementation-plan.md#definition-of-done) remains required. Later tests must extend mapping, analysis, provider and inspector coverage as those features evolve, and cover live authenticated inference, conversational follow-up/editor journeys, wider failure recovery and measured whole-project performance. Phase 07–09 cover scheduling, persistent caches/invalidation and selected translation/analysis UI within their documented limits.
@@ -95,4 +119,4 @@ Never delete failing tests to make CI green, weaken assertions, fabricate eviden
 
 ## Future Roadmap
 
-Other framework verification has no active allocation. Expansion requires explicit owner authorization after complete React + Vite support.
+Further framework verification requires new owner authorization. Do not advertise an untested runtime or bundler as supported.

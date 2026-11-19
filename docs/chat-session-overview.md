@@ -1,6 +1,28 @@
-# DevAnalyst — Overview conversation và bàn giao Phase 07–09
+# DevAnalyst — Overview conversation và bàn giao Phase 07–11
 
 Cập nhật ngày 2026-11-13. Conversation này tiếp nối nền tảng Phase 01–06 và các sửa lỗi CI/watcher/iframe. Owner lần lượt yêu cầu triển khai Phase 07, Phase 08, Phase 09, sau đó cho phép commit, push và cập nhật overview. Trạng thái sản phẩm chi tiết nằm tại [progress](progress.md); phạm vi bắt buộc nằm tại [implementation plan](implementation-plan.md).
+
+## Bổ sung hover và playground — 2026-11-16
+
+Owner phản hồi playground quá đơn giản và panel hover khó đưa chuột vào. Đã mở rộng bốn app thành dashboard commerce với 36 đơn giả lập, API cùng origin thực chạy, filter/pagination, edit/approve có điều kiện, lỗi/retry, CSV và mobile. Panel có dwell/corridor, giữ selection khi pointer/focus bên trong, cuộn/chọn chữ, Pin và Escape; sửa capture `pointerleave` của phần tử con và giới hạn chiều cao để không đè native click. Vào panel không tự dispatch AI. Xem [hướng dẫn](playgrounds.md), [ADR 0014](adr/0014-interactive-hover-and-commerce-playgrounds.md) và [validation](hover-playground-validation.md).
+
+Các thay đổi Phase 10/11 và README setup vẫn được giữ; không commit/push/publish hoặc tự bắt đầu phase sau. Dữ liệu chỉ ở memory; role là UI demo, không phải auth backend. Checks và giới hạn được ghi trong validation hiện tại.
+
+## Bổ sung Phase 11 — 2026-11-16
+
+Owner tiếp tục yêu cầu Framework Adapters, rõ ràng cho phép Next.js + React, Vue 3 + Vite và Nuxt 4. Yêu cầu này thay thế giới hạn React-only trước đó cho đúng ba target; giữ tên DevAnalyst. Đã thêm `server`/`nuxt-module`, kích hoạt lại Next/Vue và ba playground, giữ thay đổi Phase 10 chưa commit. [ADR 0013](adr/0013-framework-adapters.md) ghi kiến trúc; [framework guide](frameworks.md) ghi setup/phạm vi; [validation](phase-11-validation.md) ghi checks thực chạy.
+
+Browser inspection/UI và Node bridge/Claude/cache dùng chung; Vue dùng compiler SFC/public directive riêng, không áp dụng React ref mapping. Next chỉ map explicit client boundary qua public dev server/loader Webpack và Turbopack; server component/action không có runtime claim. Nuxt dùng public module/Vite/listen/page hooks; không suy diễn Nitro/server-only logic. Cache policy chứa framework, AI vẫn opt-in/no-tools và dùng original hashes/ranges.
+
+Root checks hiện bao gồm 11 packages, 4 apps. Các mục React-only bên dưới là lịch sử Phase 07–10. Giới hạn runtime/bundler/OS và CLI Vite-only được ghi trong guide. Không commit/push/publish trong task này; không tự bắt đầu phase sau. Follow-ups, live authenticated model, GUI editor và release gates còn pending.
+
+## Bổ sung Phase 10 — 2026-11-16
+
+Owner đã yêu cầu đọc overview và triển khai Phase 10 Developer Experience and Configuration. Giữ DevAnalyst/`@devanalyst/*`/`devanalyst.config.ts`/`devanalyst`; không thêm alias theo tên lịch sử. Đã triển khai typed config với Vite-mode overrides và inline precedence, setup/doctor/status/cache/analyze/open, kiểm tra native Claude và bridge, phím tắt/độ sâu/exclusions/debug, mở VS Code/Cursor qua authenticated bridge với shared path/position/revision guards. Xem [reference](configuration.md), [ADR 0012](adr/0012-developer-configuration-cli-editor.md), [validation](phase-10-validation.md) và [progress](progress.md).
+
+Thay đổi Phase 10 đang ở working tree; chưa commit/push/publish và không tự triển khai phase khác. Cache CLI là offline administration: dừng Vite trước clear và restart sau đó để reset memory. File cấu hình là trusted executable code như Vite config; application source analysis vẫn parse-only. Editor tests dùng owned native executable fixtures để xác minh đúng args/file/dòng/cột, chưa xác minh GUI tương tác hoặc Windows. Live authenticated Claude và conversational follow-ups vẫn chưa hoàn tất.
+
+Các mục Phase 07–09 bên dưới là lịch sử bàn giao trước Phase 10; dùng report Phase 10 cho validation hiện tại.
 
 ## 1. Git và phạm vi bàn giao
 

@@ -7,7 +7,7 @@ import type {
 
 type MappingElement = Pick<Element, 'nodeType' | 'localName' | 'isConnected'>;
 interface ModuleRecord {
-  readonly manifest: SourceModuleManifest;
+  manifest: SourceModuleManifest;
   active: boolean;
 }
 interface Binding {
@@ -62,6 +62,10 @@ function manifest(value: unknown): value is SourceModuleManifest {
   if (
     !record(value) ||
     value['version'] !== 1 ||
+    (value['framework'] !== undefined &&
+      !['react-vite', 'next-react', 'vue-vite', 'nuxt'].includes(String(value['framework']))) ||
+    (value['strategy'] !== undefined &&
+      !['compile-time-ref-v1', 'vue-directive-v1'].includes(String(value['strategy']))) ||
     !id(value['moduleId']) ||
     !id(value['revision']) ||
     !Array.isArray(value['sites']) ||
@@ -101,17 +105,38 @@ export function createMappingRegistry() {
   let totalSites = 0;
   function register(value: unknown): SourceModuleBinding {
     if (!manifest(value)) return unavailable;
+    const accepted = structuredClone(value);
     const previous = modules.get(value.moduleId);
-    if (previous) previous.active = false;
-    if (
-      (!previous && modules.size >= 512) ||
-      totalSites - (previous?.manifest.sites.length ?? 0) + value.sites.length > 10000
-    )
+    const reject = (): SourceModuleBinding => {
+      if (previous) {
+        previous.active = false;
+        if (typeof window !== 'undefined')
+          window.dispatchEvent(new Event('devanalyst:mapping-invalidated'));
+      }
       return unavailable;
-    // Detach from caller-owned mutable objects before accepting evidence.
-    const module: ModuleRecord = { manifest: structuredClone(value), active: true };
-    if (previous) previous.active = false;
-    totalSites += value.sites.length - (previous?.manifest.sites.length ?? 0);
+    };
+    const merge =
+      previous?.active &&
+      value.strategy === 'vue-directive-v1' &&
+      previous.manifest.strategy === value.strategy &&
+      previous.manifest.revision === value.revision;
+    const sites = merge ? [...previous.manifest.sites] : [...accepted.sites];
+    if (merge)
+      for (const site of accepted.sites) {
+        const known = sites.find((candidate) => candidate.id === site.id);
+        if (known && JSON.stringify(known) !== JSON.stringify(site)) return reject();
+        if (!known) sites.push(site);
+      }
+    if (
+      sites.length > 2048 ||
+      (!previous && modules.size >= 512) ||
+      totalSites - (previous?.manifest.sites.length ?? 0) + sites.length > 10000
+    )
+      return reject();
+    const module: ModuleRecord = merge ? previous : { manifest: accepted, active: true };
+    totalSites += sites.length - (previous?.manifest.sites.length ?? 0);
+    if (previous && !merge) previous.active = false;
+    module.manifest = { ...accepted, sites };
     modules.set(value.moduleId, module);
     const invalidate = () => {
       if (!module.active) return;
@@ -131,7 +156,7 @@ export function createMappingRegistry() {
           invalidate();
       },
       ref(index: number) {
-        const site = module.manifest.sites[index];
+        const site = accepted.sites[index];
         if (!site) return noop;
         const binding: Binding = { module, site, ambiguous: false };
         let last: MappingElement | null = null;
@@ -199,12 +224,21 @@ export function createMappingRegistry() {
       elementId: binding.site.id,
       runtimeId: node.runtimeId,
       revision: binding.module.manifest.revision,
-      strategy: 'compile-time-ref-v1',
+      strategy: binding.module.manifest.strategy ?? 'compile-time-ref-v1',
       observedAt,
       cache: 'none',
     };
   }
-  return { register, resolve };
+  function invalidateSource(message: unknown): void {
+    if (!record(message) || typeof message['moduleId'] !== 'string') return;
+    const module = modules.get(message['moduleId']);
+    if (module?.active && module.manifest.revision === message['revision']) {
+      module.active = false;
+      if (typeof window !== 'undefined')
+        window.dispatchEvent(new Event('devanalyst:mapping-invalidated'));
+    }
+  }
+  return { register, resolve, invalidateSource };
 }
 
 type Registry = ReturnType<typeof createMappingRegistry>;
@@ -225,6 +259,10 @@ function registry(): Registry {
 export function registerSourceModule(value: unknown): SourceModuleBinding {
   return registry().register(value);
 }
-export function resolveElementSource(element: Element): ElementSourceMapping {
+export function resolveElementSource(element: MappingElement): ElementSourceMapping {
   return registry().resolve(element);
+}
+
+export function invalidateSourceModule(message: unknown): void {
+  registry().invalidateSource(message);
 }

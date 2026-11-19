@@ -8,6 +8,23 @@ const envelope = {
 };
 
 describe('event contracts', () => {
+  it('allows only structural editor requests with valid positions/revisions and no commands', () => {
+    const payload = {
+      requestId: envelope.id,
+      source: { file: 'src/App.tsx', start: { line: 1, column: 1 }, end: null },
+      revision: 'a'.repeat(64),
+    };
+    const event = { ...envelope, type: 'editor.open', payload };
+    expect(clientEventSchema.safeParse(event).success).toBe(true);
+    for (const invalid of [
+      { ...payload, command: 'shell-command' },
+      { ...payload, revision: 'not-a-hash' },
+      { ...payload, source: { ...payload.source, file: '../secret.ts' } },
+      { ...payload, source: { ...payload.source, start: { line: 0, column: 1 } } },
+    ])
+      expect(clientEventSchema.safeParse({ ...event, payload: invalid }).success).toBe(false);
+  });
+
   it('validates a route event', () => {
     const event = { ...envelope, type: 'route.changed', payload: { pathname: '/settings' } };
     expect(clientEventSchema.parse(event)).toEqual(event);

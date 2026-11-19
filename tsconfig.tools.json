@@ -22,6 +22,12 @@
     "packages/ai/**/*.test.ts",
     "packages/cache/**/*.test.ts",
     "packages/cli/**/*.test.ts",
-    "tests/e2e/analysis-ui.spec.ts"
+    "tests/e2e/analysis-ui.spec.ts",
+    "packages/server/**/*.test.ts",
+    "packages/next-plugin/**/*.test.ts",
+    "packages/vue-plugin/**/*.test.ts",
+    "packages/nuxt-module/**/*.test.ts",
+    "tests/e2e/developer-experience.spec.ts",
+    "tests/e2e/frameworks.spec.ts"
   ]
 }

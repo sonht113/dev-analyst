@@ -8,6 +8,12 @@ export interface StaticCondition {
 }
 export type StaticAnalysisDetail =
   | {
+      readonly kind: 'value';
+      readonly expression: string;
+      /** Source declarations only; never evaluated runtime values. */
+      readonly bindings: readonly string[];
+    }
+  | {
       readonly kind: 'component';
       readonly name: string;
       readonly exports: readonly { readonly file: string; readonly name: string }[];

@@ -12,6 +12,11 @@ const confidence = z.enum(['VERIFIED', 'INFERRED', 'UNKNOWN']);
 const branch = z.enum(['truthy', 'falsy', 'nullish', 'non-nullish', 'iteration', 'unknown']);
 const detail = z.discriminatedUnion('kind', [
   z.strictObject({
+    kind: z.literal('value'),
+    expression: text,
+    bindings: z.array(z.string().max(240)).max(4),
+  }),
+  z.strictObject({
     kind: z.literal('component'),
     name,
     exports: z.array(z.strictObject({ file: name, name })).max(128),

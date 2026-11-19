@@ -6,7 +6,14 @@ packages:
   - packages/ai
   - packages/cache
   - packages/cli
+  - packages/server
+  - packages/next-plugin
+  - packages/vue-plugin
+  - packages/nuxt-module
   - apps/playground-react
+  - apps/playground-next
+  - apps/playground-vue
+  - apps/playground-nuxt
 
 minimumReleaseAge: 1440
 strictDepBuilds: true

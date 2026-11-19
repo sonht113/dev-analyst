@@ -10,6 +10,38 @@ const roots: string[] = [];
 afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
+
+it('keeps handler guards with action outcomes rather than rendering conditions', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'devanalyst-inspection-guards-'));
+  roots.push(root);
+  const code = `export function App({visible,allowed,count}){
+function save(){if(allowed){fetch('/allowed');window.location.assign('/done')}}
+return visible && <button onClick={save}>{count}</button>}`;
+  await writeFile(join(root, 'App.tsx'), code);
+  const result = await createStaticAnalyzer({
+    workspaceRoot: root,
+    source: { include: ['**/*.tsx'] },
+  }).analyzeDetailed({
+    requestId: 'guards',
+    sources: [{ file: 'App.tsx', start: null, end: null }],
+  });
+  const site = instrumentReactSource(code, 'App.tsx', '/__devanalyst/mapping-runtime.js').manifest
+    .sites[0];
+  if (!site) throw new Error('Missing origin');
+  const selected = selectInspection(result, site);
+  const visibility = selected.items.filter((item) => item.group === 'visibility');
+  expect(visibility).toHaveLength(1);
+  expect(visibility[0]?.title).toBe('truthy: visible');
+  expect(JSON.stringify(visibility)).not.toContain('allowed');
+  expect(selected.items.find((item) => item.group === 'api')?.description).toContain(
+    'Guards: truthy: allowed',
+  );
+  expect(selected.items.find((item) => item.group === 'navigation')?.description).toContain(
+    'Guards: truthy: allowed',
+  );
+  expect(selected.items.find((item) => item.group === 'value')?.title).toBe('count');
+  for (const item of selected.items) expect(inspectorItemSchema.safeParse(item).success).toBe(true);
+});
 it('projects the selected handler and reachable imported calls, excluding sibling behavior', async () => {
   const root = await mkdtemp(join(tmpdir(), 'devanalyst-inspection-view-'));
   roots.push(root);

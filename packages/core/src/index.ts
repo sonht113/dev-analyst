@@ -59,3 +59,4 @@ export type { AnalysisState, PageElement, PageItemStatus, PageProgress } from '.
 
 export { inspectorItemSchema, inspectorUpdateSchema } from './inspector.js';
 export type { InspectorItem, InspectorUpdate } from './inspector.js';
+export type { FrameworkId, FrameworkCapabilities, MappingStrategy } from './framework.js';

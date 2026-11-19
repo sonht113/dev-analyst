@@ -1,0 +1,53 @@
+{
+  "name": "@devanalyst/nuxt-module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DevAnalyst nuxt-module integration",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "src/**/*.ts",
+    "!src/**/*.test.ts"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./vue-runtime": {
+      "types": "./dist/vue-runtime.d.ts",
+      "import": "./dist/vue-runtime.js",
+      "default": "./dist/vue-runtime.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch --preserveWatchOutput",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@devanalyst/core": "workspace:*",
+    "@devanalyst/server": "workspace:*",
+    "@devanalyst/inspector": "workspace:*",
+    "@nuxt/kit": "4.6.4",
+    "h3": "1.15.4"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "@types/ws": "^8.18.0"
+  },
+  "peerDependencies": {
+    "nuxt": "~4.6.4"
+  }
+}

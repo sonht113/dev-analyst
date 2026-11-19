@@ -4,13 +4,24 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
-    "types": ["node"]
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["**/*.test.ts"],
   "references": [
     {
       "path": "../core"
+    },
+    {
+      "path": "../server"
+    },
+    {
+      "path": "../analyzer"
+    },
+    {
+      "path": "../inspector"
     }
   ]
 }

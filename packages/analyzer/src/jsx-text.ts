@@ -1,10 +1,8 @@
 import ts from 'typescript';
-import type { Evidence, SourceReference } from '@devanalyst/core';
-export interface JSXInspectionOrigin {
-  readonly siteId: string;
-  readonly private: boolean;
-  readonly literal: { readonly text: string; readonly evidence: Evidence } | null;
-}
+import type { SourceReference } from '@devanalyst/core';
+import type { SourceInspectionOrigin } from './source-inspection.js';
+/** Compatibility alias for the React JSX extractor. */
+export type JSXInspectionOrigin = SourceInspectionOrigin;
 /** Static text only. Expressions, custom components, controls and private ancestors fail closed. */
 export function inspectJSXText(
   node: ts.JsxOpeningElement | ts.JsxSelfClosingElement,

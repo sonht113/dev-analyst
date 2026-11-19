@@ -1,0 +1,97 @@
+{
+  "name": "@devanalyst/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DevAnalyst shared development-only Node services",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "src/**/*.ts",
+    "!src/**/*.test.ts"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./bridge": {
+      "types": "./dist/bridge.d.ts",
+      "import": "./dist/bridge.js",
+      "default": "./dist/bridge.js"
+    },
+    "./mapping": {
+      "types": "./dist/mapping.d.ts",
+      "import": "./dist/mapping.js",
+      "default": "./dist/mapping.js"
+    },
+    "./inspection": {
+      "types": "./dist/inspection.d.ts",
+      "import": "./dist/inspection.js",
+      "default": "./dist/inspection.js"
+    },
+    "./inspection-view": {
+      "types": "./dist/inspection-view.d.ts",
+      "import": "./dist/inspection-view.js",
+      "default": "./dist/inspection-view.js"
+    },
+    "./cache": {
+      "types": "./dist/cache.d.ts",
+      "import": "./dist/cache.js",
+      "default": "./dist/cache.js"
+    },
+    "./editor": {
+      "types": "./dist/editor.d.ts",
+      "import": "./dist/editor.js",
+      "default": "./dist/editor.js"
+    },
+    "./configuration": {
+      "types": "./dist/configuration.d.ts",
+      "import": "./dist/configuration.js",
+      "default": "./dist/configuration.js"
+    },
+    "./operations": {
+      "types": "./dist/operations.d.ts",
+      "import": "./dist/operations.js",
+      "default": "./dist/operations.js"
+    },
+    "./workspace": {
+      "types": "./dist/workspace.d.ts",
+      "import": "./dist/workspace.js",
+      "default": "./dist/workspace.js"
+    },
+    "./compiler": {
+      "types": "./dist/compiler.d.ts",
+      "import": "./dist/compiler.js",
+      "default": "./dist/compiler.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch --preserveWatchOutput",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@devanalyst/core": "workspace:*",
+    "@devanalyst/inspector": "workspace:*",
+    "ws": "8.22.2",
+    "@devanalyst/analyzer": "workspace:*",
+    "@devanalyst/ai": "workspace:*",
+    "@devanalyst/cache": "workspace:*",
+    "vite": "8.3.5"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "@types/ws": "^8.18.0"
+  },
+  "peerDependencies": {}
+}

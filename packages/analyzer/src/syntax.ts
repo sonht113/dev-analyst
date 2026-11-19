@@ -1,12 +1,16 @@
 import ts from 'typescript';
 import type { Evidence, SourceReference, StaticCondition } from '@devanalyst/core';
+const originalFiles = new WeakMap<ts.SourceFile, string>();
+export function registerOriginalSource(file: ts.SourceFile, path: string): void {
+  originalFiles.set(file, path);
+}
 export const virtualRoot = '/__devanalyst_workspace__/';
 export function sourceOf(node: ts.Node): SourceReference {
   const sf = node.getSourceFile();
   const a = sf.getLineAndCharacterOfPosition(node.getStart(sf)),
     b = sf.getLineAndCharacterOfPosition(node.end);
   return {
-    file: sf.fileName.slice(virtualRoot.length),
+    file: originalFiles.get(sf) ?? sf.fileName.slice(virtualRoot.length),
     start: { line: a.line + 1, column: a.character + 1 },
     end: { line: b.line + 1, column: b.character + 1 },
   };

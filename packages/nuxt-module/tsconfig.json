@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.package.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "lib": ["ES2024", "DOM"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/*.test.ts"],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../server"
+    },
+    {
+      "path": "../inspector"
+    }
+  ]
+}

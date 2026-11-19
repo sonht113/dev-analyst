@@ -21,6 +21,18 @@
     },
     {
       "path": "./packages/cli"
+    },
+    {
+      "path": "./packages/server"
+    },
+    {
+      "path": "./packages/next-plugin"
+    },
+    {
+      "path": "./packages/vue-plugin"
+    },
+    {
+      "path": "./packages/nuxt-module"
     }
   ]
 }

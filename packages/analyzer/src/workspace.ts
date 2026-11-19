@@ -21,6 +21,7 @@ export async function createWorkspaceAccess(
   const extensions = new Set([
     '.ts',
     '.tsx',
+    '.vue',
     '.js',
     '.jsx',
     '.mjs',

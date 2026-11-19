@@ -17,6 +17,7 @@ export const analysisLimitsSchema = z.strictObject({
   timeoutMs: z.number().int().min(1).max(10000).default(2500),
 });
 export const analyzerOptionsSchema = z.strictObject({
+  framework: z.enum(['react-vite', 'next-react', 'vue-vite', 'nuxt']).default('react-vite'),
   workspaceRoot: z.string().min(1).max(4096),
   source: configSchema.shape.source,
   aliases: z

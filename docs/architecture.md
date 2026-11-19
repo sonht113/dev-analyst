@@ -1,40 +1,47 @@
 # DevAnalyst architecture
 
-**React + Vite + TypeScript is the only currently supported framework combination.** The permanent [scope rule](../AGENTS.md) and [ADR 0003](adr/0003-react-vite-scope.md) supersede earlier multi-framework plans. All required product capabilities remain in scope for React + Vite.
+The owner-requested [element flow summary](adr/0015-element-flow-summary.md) keeps translation and selected rendering/value/event outcomes in the primary inspector view, with full evidence in collapsed details. Bounded lexical display-source findings share the existing analyzer/worker/cache contracts; handler guards remain separate from rendering guards. See [UI behavior and limits](inspector-ui.md).
+
+Phase 11 explicitly adds Next.js + React, Vue 3 + Vite and Nuxt 4 alongside React + Vite. [ADR 0013](adr/0013-framework-adapters.md) supersedes the prior React-only rule for these targets. Support remains bounded by the [verified framework guide](frameworks.md).
 
 ## Active package boundaries
 
-| Package                   | Responsibility                                          | Current implementation                                                                                                                              |
-| ------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@devanalyst/core`        | Browser-safe contracts and validation                   | Configuration, evidence/findings, events, errors, structured logging                                                                                |
-| `@devanalyst/vite-plugin` | Development-only Vite lifecycle and local Node services | Runtime injection, authenticated bridge, watcher events, lifecycle/port/error handling                                                              |
-| `@devanalyst/inspector`   | React browser UI and browser interactions               | Shadow DOM inspector with independent translation, progressive source/AI findings, evidence, copy/filter, locales/themes and route/keyboard runtime |
-| `@devanalyst/analyzer`    | Deterministic React/TypeScript AST analysis             | React JSX instrumentation plus closed TypeScript source analysis, guarded reads, bounded graph and findings                                         |
-| `@devanalyst/ai`          | Claude Code CLI execution and contextual explanations   | Opt-in native CLI adapter, guarded AST context, no-tools permissions, strict output and bounded lifecycle                                           |
-| `@devanalyst/cache`       | Persistent analysis storage and invalidation            | Worker-owned SQLite persistence, separate analysis/translation namespaces, dependency invalidation and cache inspection/clearing                    |
-| `@devanalyst/cli`         | Developer commands                                      | Help/version, dev startup/shutdown, and doctor diagnostics; editor/config utilities remain pending                                                  |
+| Package                   | Responsibility                                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@devanalyst/core`        | Browser-safe contracts, validation, framework IDs/capabilities, evidence and logging                                                              |
+| `@devanalyst/inspector`   | Shared native browser UI/route runtime, neutral origin registry, public Vue directive entry                                                       |
+| `@devanalyst/analyzer`    | Guarded source reads, concrete FrameworkAdapter contract, independent JSX/SFC mapping and bounded source analysis                                 |
+| `@devanalyst/server`      | Actual development host contract, authenticated bridge, mapping registry, queue, selected analysis, Claude/cache/editor/configuration composition |
+| `@devanalyst/vite-plugin` | Real Vite lifecycle/HTML/transforms/watchers and compatibility reexports                                                                          |
+| `@devanalyst/vue-plugin`  | Vue strategy selection on the Vite host                                                                                                           |
+| `@devanalyst/next-plugin` | Public Next dev server and Webpack/Turbopack loader integration, client bootstrap                                                                 |
+| `@devanalyst/nuxt-module` | Public Nuxt module/Vite/listen/page lifecycle integration                                                                                         |
+| `@devanalyst/ai`          | Opt-in enforced read-only Claude CLI and guarded original evidence context                                                                        |
+| `@devanalyst/cache`       | Worker-owned SQLite, framework/policy/hash identity, invalidation                                                                                 |
+| `@devanalyst/cli`         | Setup/doctor/status/dev/cache/analyze/open; dev/project doctor remain Vite-specific                                                               |
 
-The only active playground is `apps/playground-react`. Its Vite configuration registers DevAnalyst and automatically injects the browser bridge during development. React browser fixtures exercise host behavior and local inspection; safe JSX origin mapping is implemented; the Node static analysis API is available; Phase 09 composes source/AI findings and independent translation into the browser inspector. Retained historical artifacts are inventoried in [progress](progress.md) and excluded from this active architecture.
+Active applications are `playground-react`, `playground-next`, `playground-vue` and `playground-nuxt`. Other historical tests remain excluded. All Node integrations supply real host middleware, bound HTTP server, source watchers and teardown through `DevelopmentHost`; no fake Vite object or private browser framework runtime is used.
 
 ```mermaid
 flowchart BT
-  Inspector[inspector: browser] --> Core[core: browser-safe contracts]
-  Vite[vite-plugin: Node.js] --> Core
-  Vite -->|browser module asset| Inspector
-  Analyzer[analyzer: Node.js] --> Core
-  Vite --> Analyzer
-  Vite --> AI
-  Vite --> Cache
-  Cache -->|guarded workspace export| Analyzer
-  AI[ai: Node.js] --> Core
-  AI -->|guarded source policy| Analyzer
-  Cache[cache: Node.js] --> Core
-  CLI[cli: Node.js] --> Core
-  CLI --> Vite
-  Core --> Zod[Zod]
+  Vue[vue-plugin] --> Vite[vite-plugin]
+  Vite --> Server[server: Node services]
+  Next[next-plugin] --> Server
+  Nuxt[nuxt-module] --> Server
+  Server --> Inspector[inspector: browser assets]
+  Server --> Analyzer[analyzer: guarded source/worker]
+  Server --> AI[ai: no-tools Claude]
+  Server --> Cache[cache: SQLite worker]
+  Cache --> Analyzer
+  AI --> Analyzer
+  Inspector --> Core[core: browser-safe contracts]
+  Analyzer --> Core
+  CLI[cli] --> Vite
 ```
 
-These arrows describe active package dependencies. Vite serves the inspector runtime asset without executing browser code in Node. Vite invokes JSX instrumentation only for authorized module transforms; Phase 07 composes behavior analysis through a bounded worker queue after validated page metadata arrives. Phase 07 wires the optional Claude provider with additional background consent and an in-memory result cache; Phase 08 adds the persistent SQLite composition; no additional bridge or adapter package is justified. Do not introduce a generic framework adapter layer or empty future integrations.
+Source adapters are pure bounded compiler functions. React public-ref mapping stays separate from Vue compiler-template/public-directive mapping. Vue uses original SFC positions/hashes; a UTF-16-preserving script projection feeds only common TypeScript import/call analysis. Template identities merge by module/revision while each committed DOM instance retains its own runtime ID. HMR changes source manifests without changing Vue setup script code, preserving template-only state. Watcher notifications demote obsolete provenance through the shared authenticated protocol.
+
+Next maps explicit client JSX only. Its compiler subprocesses ask an owner-only Unix socket for a revision-checked authorized transform, with strict request shape, connection/frame/work bounds and cleanup. This is not a browser source-read RPC. Public Next request handling owns native upgrades; DevAnalyst owns its separate authenticated bridge. Nuxt uses public Kit/Vite/server hooks and dev-only committed-page notification. Server Components, Server Actions and Nitro logic never acquire browser execution claims. Full limits and startup examples are in [frameworks](frameworks.md).
 
 ## Phase 02 local bridge
 
@@ -50,11 +57,11 @@ Current transport supports standalone local HTTP Vite 8.3.5+; HTTPS and middlewa
 
 ## Browser and Node.js separation
 
-The browser inspector owns delegated pointer/keyboard interactions, local DOM metadata, client-rectangle highlights and a floating panel inside Shadow DOM. Ordinary hover is passive; Alt or explicit Inspect mode activates inspection actions. It preserves application text and normal interactions, handles scrolling/resizing, SPA/HMR, loading/error/disconnected states and light/dark/system themes. [ADR 0005](adr/0005-browser-element-inspector.md) records the owner-requested delivery order and the native DOM/CSS UI exception to the proposed React/Tailwind stack.
+The browser inspector owns delegated pointer/keyboard interactions, local DOM metadata, client-rectangle highlights and a floating panel inside Shadow DOM. Initial hover previews are click-through; deliberate panel entry enables controls and holds the selection for scrolling and text selection ([ADR 0014](adr/0014-interactive-hover-and-commerce-playgrounds.md)). Alt or explicit Inspect mode activates detailed inspection. It preserves application text and normal interactions, handles scrolling/resizing, SPA/HMR, loading/error/disconnected states and light/dark/system themes. [ADR 0005](adr/0005-browser-element-inspector.md) records the owner-requested delivery order and the native DOM/CSS UI exception to the proposed React/Tailwind stack.
 
 DOM text stays in the browser; Phase 07 sends bounded structural metadata and verified JSX IDs to the authenticated local Node bridge. DOM metadata carries a timestamp, source status `VERIFIED` for current safe JSX provenance or `UNKNOWN` with a reason, and no persistent cache. Extraction is bounded, uses an attribute allowlist, skips values/editable/private/hidden contents and does not collect HTML or arbitrary URLs. Native associated-label text is a candidate, not a complete accessible-name implementation. Open shadow roots and accessible same-origin frames are observed within bounded discovery limits; parent-document load capture attaches loaded frame documents before their first interaction, while general subtree discovery remains debounced; cross-origin frames and closed roots remain opaque. Teardown restores listeners/timers/observers and removes only the inspector host. The panel shows source origin/range and lexical owner when available. The Node engine provides behavioral source facts; Phase 09 projects selected evidence and independent translation into compact/expanded inspector modes.
 
-Node.js owns workspace-contained source reads, AST analysis, subprocesses, scheduling, persistent SQLite caching, and editor-opening controls. The Vite Plugin API owns automatic development-only startup and shutdown. Browser packages must not import Node.js modules or Node-only workspace packages. Validate messages and authorized workspace access before dispatching work.
+Node.js owns workspace-contained source reads, AST analysis, subprocesses, scheduling, persistent SQLite caching, and editor-opening controls. Each concrete framework integration owns automatic development-only startup and shutdown. Browser packages must not import Node.js modules or Node-only workspace packages. Validate messages and authorized workspace access before dispatching work.
 
 ## React mapping and deterministic analysis
 
@@ -86,17 +93,17 @@ Layered caches cover pages, components, elements, translations, and mapping. Key
 
 Browser requests contain a text digest, never DOM text/values. Node-only bounded static JSX literal descriptors permit source-matched glossary/cache translation independently of AST work. Unknown terms can invoke a separate translator only on explicit expanded selection with configured AI/path consent. Hover uses glossary/cache/source facts and never starts new inference. Dynamic/private/control text remains local. Selected provider work retains Phase 06 controls; automatic background consent remains separate.
 
-Independent worker-owned SQLite namespaces cache source-matched translation and selected source-only explanation with hashes/dependency topology, policy, model and schema identity. Browser historical reuse is UNKNOWN/stale until checked; source invalidation blocks late updates, cancels jobs and demotes old facts. Queue/message/item/memory/deadline bounds protect rendering and HMR. English/Vietnamese/Japanese chrome, system/light/dark themes, keyboard controls, copy/filter/search and viewport-bounded modes are described in [usage](inspector-ui.md). Only display preferences persist in browser storage; Node plugin cache clear also invalidates inspector memory. Editor navigation and conversational follow-ups remain later work.
+Independent worker-owned SQLite namespaces cache source-matched translation and selected source-only explanation with hashes/dependency topology, policy, model and schema identity. Browser historical reuse is UNKNOWN/stale until checked; source invalidation blocks late updates, cancels jobs and demotes old facts. Queue/message/item/memory/deadline bounds protect rendering and HMR. English/Vietnamese/Japanese chrome, system/light/dark themes, keyboard controls, copy/filter/search and viewport-bounded modes are described in [usage](inspector-ui.md). Only display preferences persist in browser storage; Node plugin cache clear also invalidates inspector memory. Phase 10 supplies guarded editor navigation; conversational follow-ups remain later work.
 
 ## Build and contract conventions
 
 Libraries currently use ESM exports and TypeScript project references, emitting declarations and source maps. Relative TypeScript imports use `.js`; internal dependencies use `workspace:*`. Shared TypeScript settings retain strict checking, exact optional properties, unchecked-index protection, and declaration checking.
 
-Phase 08 owns SQLite in a dedicated cache worker and injects persistence hooks into the analyzer queue without an analyzer-to-cache dependency cycle. Cache uses the lightweight public analyzer workspace export; Vite composes the cache and provider. Source hashes, missing candidates and canonical alias resolutions validate current results across restarts; stale historical findings are UNKNOWN and never attached as current evidence. See [ADR 0010](adr/0010-persistent-analysis-cache.md) and [usage](persistent-cache.md).
+Phase 08 owns SQLite in a dedicated cache worker and injects persistence hooks into the analyzer queue without an analyzer-to-cache dependency cycle. Cache uses the lightweight public analyzer workspace export; Shared server services compose the cache and provider. Source hashes, missing candidates and canonical alias resolutions validate current results across restarts; stale historical findings are UNKNOWN and never attached as current evidence. See [ADR 0010](adr/0010-persistent-analysis-cache.md) and [usage](persistent-cache.md).
 
-Active non-core packages depend on core; Vite also depends on the browser runtime asset, analyzer and AI provider, and CLI ships with the matching Vite integration. Existing configuration, versioned events, error serialization, and structured logger are reusable foundation work. Syntactic path schemas alone are not filesystem isolation. Phase 02 adds internal Node workspace access with includes/excludes, canonical containment, symlink/identity/change checks, and bounded reads. This does not implement an AI subprocess sandbox or expose those reads over the bridge.
+The server package composes runtime assets, analyzer, cache and AI; framework packages provide host lifecycle and mapping hooks. CLI ships with the matching Vite integration. Existing configuration, versioned events, error serialization, and structured logger are reusable foundation work. Syntactic path schemas alone are not filesystem isolation. Phase 02 adds internal Node workspace access with includes/excludes, canonical containment, symlink/identity/change checks, and bounded reads. This does not implement an AI subprocess sandbox or expose those reads over the bridge.
 
-Workspace globs, lockfile importers, scripts, TypeScript references, lint/test/package checks, and CI now select only the seven active packages and React fixture. Historical source/tests remain preserved and excluded. Use [testing](testing.md) for current commands and [progress](progress.md) for retained inventory.
+Workspace globs, lockfile importers, scripts, TypeScript references, lint/test/package checks and CI select eleven packages and four applications. Unrelated historical tests remain preserved and excluded. Use [testing](testing.md) for current commands and [progress](progress.md) for retained inventory.
 
 ## Production and release acceptance
 
@@ -106,4 +113,8 @@ The [implementation plan](implementation-plan.md) and its Definition of Done cov
 
 ## Future Roadmap
 
-Next.js, Vue, Nuxt, Angular, Svelte, and other framework support is deferred. No generic adapter infrastructure, packages, playgrounds, dependencies, or tests for those frameworks belong in active phases. Consider expansion only after full React + Vite delivery and an explicit owner-approved scope change.
+Angular, Svelte and further integrations remain outside the authorized scope. No subsequent phase or publication is implied.
+
+## Interactive hover follow-up
+
+[ADR 0014](adr/0014-interactive-hover-and-commerce-playgrounds.md) adds deliberate panel entry, a bounded target dwell/transfer corridor, pointer/focus hold, internal scrolling and viewport-constrained placement. Passive previews stay click-through; hover/focus do not start AI. Explicit selection/pinning and stale-source guards remain independent. Realistic [commerce playgrounds](playgrounds.md) provide actual local APIs and UI workflows within each native app, without new workspace packages or dependencies.
