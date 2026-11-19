@@ -75,11 +75,16 @@ async function start(
     plugins: [plugin],
     ...extra,
     customLogger: extra.customLogger ?? createLogger('silent'),
-    server: { host: '127.0.0.1', port: 0 },
+    server: { host: '127.0.0.1', port: 0, watch: { useFsEvents: false, usePolling: false } },
   });
   cleanup.push(() => server.close());
   await server.listen();
   await plugin.api.ready;
+  // Bridge listening is independent of native source-watcher discovery. Creating
+  // files during the initial crawl can suppress their add notification.
+  await expect
+    .poll(() => server.watcher.getWatched()[join(server.config.root, 'src')], { timeout: 5000 })
+    .toContain('main.js');
   return { root, server, plugin, events };
 }
 
@@ -206,8 +211,6 @@ describe('real Vite and authenticated bridge', () => {
       },
     );
     const source = 'export function Visible(){return <button>Safe</button>}';
-    await writeFile(join(root, 'src/Visible.tsx'), source);
-    await server.transformRequest('/src/Visible.tsx');
     const { manifest } = instrumentReactSource(
       source,
       'src/Visible.tsx',
@@ -224,6 +227,22 @@ describe('real Vite and authenticated bridge', () => {
     const ready = connection.messages.find((message) => message.type === 'bridge.ready');
     if (ready?.type !== 'bridge.ready') throw new Error('Missing bridge client');
     const client = ready.payload.clientId;
+    await writeFile(join(root, 'src/Visible.tsx'), source);
+    await expect
+      .poll(
+        () =>
+          connection.messages.some(
+            (message) =>
+              message.type === 'source.changed' &&
+              message.payload.file === 'src/Visible.tsx' &&
+              message.payload.kind === 'add',
+          ),
+        { timeout: 5000 },
+      )
+      .toBe(true);
+    // Register and request analysis only after the genuine add notification has
+    // finished invalidation; a late add must not race this protocol assertion.
+    await server.transformRequest('/src/Visible.tsx');
     const send = (type: string, payload: unknown) =>
       connection.socket.send(
         JSON.stringify({
@@ -249,7 +268,9 @@ describe('real Vite and authenticated bridge', () => {
       elements: [element, { ...element, elementId: 'f'.repeat(64), file: 'src/main.js' }],
       limited: false,
     });
-    await expect.poll(() => plugin.api.getPageAnalysis(client)).toMatchObject({ completed: 1 });
+    await expect
+      .poll(() => plugin.api.getPageAnalysis(client), { timeout: 10000 })
+      .toMatchObject({ completed: 1 });
     expect(plugin.api.getPageAnalysis(client)).toMatchObject({ total: 1, limited: true });
     expect(connection.messages.some((message) => message.type === 'page.progress')).toBe(true);
     send('page.index', {
@@ -374,7 +395,7 @@ describe('real Vite and authenticated bridge', () => {
             (message) =>
               message.type === 'source.changed' && message.payload.file === 'src/Save.tsx',
           ),
-        { timeout: 3000 },
+        { timeout: 5000 },
       )
       .toBe(true);
     await server.transformRequest('/src/Save.tsx');
