@@ -311,11 +311,20 @@ test('handles same-origin nested frames, accessible shadow content and opaque bo
   await frameButton.click({ modifiers: ['Alt'] });
   await expect.poll(async () => (await snapshot(page))?.metadata?.text).toBe('Frame button');
   expect((await snapshot(page))?.metadata?.context).toBe('iframe');
-  const target = await frameButton.boundingBox();
-  const highlight = await page.locator('devanalyst-inspector .box').first().boundingBox();
-  expect(
-    target && highlight && Math.abs(target.x - highlight.x) + Math.abs(target.y - highlight.y) < 2,
-  ).toBe(true);
+  // Progress/resize renders replace highlight nodes. Reacquire geometry until
+  // both samples are available, retaining the exact transformed-frame check.
+  await expect
+    .poll(async () => {
+      const target = await frameButton.boundingBox();
+      const highlight = await page.locator('devanalyst-inspector .box').first().boundingBox();
+      return target && highlight
+        ? Math.abs(target.x - highlight.x) +
+            Math.abs(target.y - highlight.y) +
+            Math.abs(target.width - highlight.width) +
+            Math.abs(target.height - highlight.height)
+        : Number.POSITIVE_INFINITY;
+    })
+    .toBeLessThan(2);
   await page.keyboard.press('Escape');
   await page
     .frameLocator('#same-frame')

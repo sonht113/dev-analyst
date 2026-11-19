@@ -65,3 +65,11 @@ The fixture returned after HTTP/bridge readiness, independently of native watche
 The exact registration, forged-source rejection, scoped findings, source-change delivery and disconnected-page assertions remain in place. The fix changes test synchronization only; runtime limits, workflow matrix and retry policy are unchanged. Hosted Node 22/24 results for the corrective commit must be checked before declaring CI recovery.
 
 Local corrective validation on Darwin arm64 / Node 22.23.2: all 29 bridge integration tests passed; the two reported cases passed ten consecutive runs each (20 executions, no retries). `pnpm check` passed lint/boundaries/formatting, typecheck, all 359 unit/integration tests, all application builds and all eleven package checks. `pnpm test:e2e tests/e2e/bridge.spec.ts` passed all six Chromium bridge journeys. These local results do not establish the new hosted matrix outcome.
+
+## Frame highlight sampling follow-up
+
+[Run 44480227660](https://github.com/sonht113/dev-analyst/actions/runs/44480227660) for `b262062` passed the formerly failing unit/integration stage on both Node versions; Node 22 completed its entire job successfully. Node 24 reported one failure among 57 E2E tests: the scaled same-origin iframe geometry assertion received a null bounding-box sample after the expected iframe metadata had already been selected. Its uploaded screenshot shows the pinned frame button and its highlight.
+
+Inspector renders replace highlight DOM nodes on progress/resize updates. A one-shot Playwright `boundingBox()` sample can therefore lose its node between selection and geometry measurement. The iframe assertion now reacquires both target and highlight geometry through bounded `expect.poll`, as the existing SVG/scroll/resize geometry test already does. Missing geometry cannot pass; the assertion retains the two-pixel bound and now includes width/height as well as position. Native iframe clicks, nested-frame selection, shadow/opaque boundary checks and runtime rendering are preserved.
+
+The corrected iframe case passed 20/20 local Chromium repetitions with zero retries, followed by all 57 E2E tests. Lint/boundaries/formatting and strict workspace typecheck passed again. The earlier 359-test, build and package validation applies to the unchanged runtime; this follow-up changes only the browser assertion and this report.
