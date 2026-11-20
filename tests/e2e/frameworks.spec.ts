@@ -226,6 +226,19 @@ for (const entry of [
       const source = await readFile(join(app.root, mapping.source.file), 'utf8');
       expect(source.split('\n')[(mapping.source.start?.line ?? 0) - 1]).toContain('save');
       await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'Turn off analysis', exact: true }).click();
+      await expect
+        .poll(() =>
+          page.evaluate(() => window.__DEVANALYST_BRIDGE__?.getSnapshot().analysisEnabled),
+        )
+        .toBe(false);
+      await expect
+        .poll(() => page.evaluate(() => window.__DEVANALYST_BRIDGE__?.getSnapshot().status))
+        .toBe('disconnected');
+      await expect(page.locator('devanalyst-inspector #panel')).toBeHidden();
+      await expect(page.locator('#counter')).toContainText('1');
+      await page.getByRole('button', { name: 'Turn on analysis', exact: true }).click();
+      await connected(page);
       if (entry.framework === 'vue') {
         const first = await select(page, 'li:nth-child(1) .row');
         await page.keyboard.press('Escape');

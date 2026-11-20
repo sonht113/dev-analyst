@@ -91,6 +91,7 @@ for (const target of [
             '/__devanalyst/',
             '__DEVANALYST_BRIDGE__',
             '__DEVANALYST_INSPECTOR__',
+            'analysis-toggle',
             'devanalyst.auth.',
             'vueSourceDirective',
             'vDevanalystOrigin',

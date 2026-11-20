@@ -6,6 +6,7 @@ import { resolveElementSource } from './mapping-runtime.js';
 import { extractElementMetadata, type ElementMetadata } from './metadata.js';
 
 export interface ElementInspectorOptions {
+  readonly onAnalysisEnabled?: (enabled: boolean) => void;
   readonly shortcuts?: DevAnalystConfig['inspector']['shortcuts'];
   readonly openSource?: (source: SourceReference, revision?: string) => Promise<string>;
   readonly theme?: 'system' | 'light' | 'dark';
@@ -17,8 +18,10 @@ export interface ElementInspectorOptions {
 }
 export interface ElementInspectorHandle {
   stop(): void;
+  setAnalysisEnabled(enabled: boolean): void;
   setInspecting(enabled: boolean): void;
   getSnapshot(): {
+    readonly analysisEnabled: boolean;
     readonly inspecting: boolean;
     readonly pinned: boolean;
     readonly interacting: boolean;
@@ -52,7 +55,11 @@ export function startElementInspector(
     button:focus-visible{outline:3px solid #db8a00;outline-offset:2px} button[aria-pressed=true]{background:#174ab5;color:white}
     #surface{--bg:#fff;--fg:#172033;font:13px/1.45 system-ui,sans-serif;color:var(--fg)} #surface[data-theme=dark]{--bg:#192335;--fg:#f2f5ff}
     @media(prefers-color-scheme:dark){#surface[data-theme=system]{--bg:#192335;--fg:#f2f5ff}}
-    #launch{position:fixed;bottom:12px;right:12px;pointer-events:auto;background:var(--bg);color:var(--fg)}
+    #tools{position:fixed;bottom:12px;right:12px;z-index:2;display:flex;gap:6px;align-items:center;max-width:calc(100vw - 24px)}
+    #tools button{pointer-events:auto;background:var(--bg);color:var(--fg);box-shadow:0 2px 12px #0002}
+    #tools button[aria-pressed=true]{background:#174ab5;color:white}
+    #analysis-toggle{min-height:40px;border-radius:20px;padding:8px 12px;font-weight:650}
+    #analysis-toggle[aria-pressed=true]{background:#174ab5;color:white} #analysis-toggle[aria-pressed=false]{border-style:dashed}
     #panel,#menu{position:fixed;pointer-events:auto;background:var(--bg);color:var(--fg);border:1px solid #72809a;border-radius:8px;padding:12px;box-shadow:0 5px 24px #0004;max-height: min(65vh,560px);overflow:auto;width:340px;max-width:calc(100vw - 16px)}
     #panel.expanded{width:520px;max-height:min(78vh,760px)}
     #panel{border-radius:12px;scrollbar-width:thin;overscroll-behavior:contain}
@@ -92,9 +99,12 @@ export function startElementInspector(
   }
   const boxes = make('div', 'boxes');
   boxes.setAttribute('aria-hidden', 'true');
-  const launch = make('button', 'launch');
-  launch.textContent = 'DevAnalyst · Inspect';
-  launch.setAttribute('aria-pressed', 'false');
+  const tools = make('div', 'tools');
+  tools.setAttribute('role', 'group');
+  tools.setAttribute('aria-label', 'DevAnalyst');
+  const analysisToggle = make('button', 'analysis-toggle', tools);
+  analysisToggle.type = 'button';
+  analysisToggle.addEventListener('click', () => setAnalysisEnabled(!analysisEnabled));
   const shortcuts = options.shortcuts ?? {
     toggle: 'Alt+Shift+KeyI',
     pin: 'Alt+KeyP',
@@ -110,7 +120,6 @@ export function startElementInspector(
       event.shiftKey === parts.includes('Shift')
     );
   };
-  launch.setAttribute('aria-keyshortcuts', shortcuts.toggle.replace('Key', ''));
   const panel = make('section', 'panel');
   panel.hidden = true;
   panel.setAttribute('aria-label', 'Element inspector');
@@ -140,6 +149,12 @@ export function startElementInspector(
     setInspecting(false);
     restoreFocus();
   });
+  // Only the master on/off control floats. Explicit selection is a panel action
+  // so leaving selection mode cannot be mistaken for disabling passive hover.
+  const launch = button('DevAnalyst · Inspect', actions, () => setInspecting(!inspecting));
+  launch.id = 'launch';
+  launch.setAttribute('aria-pressed', 'false');
+  launch.setAttribute('aria-keyshortcuts', shortcuts.toggle.replace('Key', ''));
   const menu = make('div', 'menu');
   menu.hidden = true;
   menu.setAttribute('role', 'menu');
@@ -166,6 +181,7 @@ export function startElementInspector(
   document.documentElement.append(host);
 
   let disposed = false;
+  let analysisEnabled = true;
   let inspecting = false;
   let pinned = false;
   let hoverDismissed = false;
@@ -243,6 +259,17 @@ export function startElementInspector(
   });
 
   function chrome(): void {
+    text(analysisToggle, label(displayLanguage, analysisEnabled ? 'analysisOn' : 'analysisOff'));
+    analysisToggle.setAttribute('aria-pressed', String(analysisEnabled));
+    analysisToggle.setAttribute(
+      'aria-label',
+      label(displayLanguage, analysisEnabled ? 'disableAnalysis' : 'enableAnalysis'),
+    );
+    analysisToggle.title = label(
+      displayLanguage,
+      analysisEnabled ? 'disableAnalysis' : 'enableAnalysis',
+    );
+    launch.hidden = !analysisEnabled;
     text(launch, label(displayLanguage, inspecting ? 'inspecting' : 'inspect'));
     text(pin, label(displayLanguage, pinned ? 'unpin' : 'pin'));
     text(copyAction, label(displayLanguage, 'copyMetadata'));
@@ -305,13 +332,42 @@ export function startElementInspector(
     boxes.replaceChildren();
   }
   function setInspecting(enabled: boolean): void {
-    if (disposed) return;
+    if (disposed || !analysisEnabled) return;
     inspecting = enabled;
     launch.setAttribute('aria-pressed', String(enabled));
     chrome();
     if (!enabled) close();
   }
-  launch.addEventListener('click', () => setInspecting(!inspecting));
+  function releaseObservation(): void {
+    documents.forEach((release) => release());
+    frames.forEach((release) => release());
+    roots.forEach((mutation) => mutation.disconnect());
+    documents.clear();
+    frames.clear();
+    roots.clear();
+  }
+  function setAnalysisEnabled(enabled: boolean): void {
+    if (disposed || analysisEnabled === enabled) return;
+    const focus = shadow.activeElement;
+    const restoreToggle =
+      !!focus && (panel.contains(focus) || menu.contains(focus) || focus === launch);
+    if (!enabled) setInspecting(false);
+    analysisEnabled = enabled;
+    if (!enabled) {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      clearTimeout(discoveryTimer);
+      discoveryTimer = undefined;
+      previousFocus = null;
+      releaseObservation();
+    } else {
+      attach(document);
+      discover();
+    }
+    chrome();
+    if (restoreToggle) analysisToggle.focus({ preventScroll: true });
+    options.onAnalysisEnabled?.(enabled);
+  }
   function owned(event: Event): boolean {
     return event.composedPath().includes(host);
   }
@@ -334,7 +390,7 @@ export function startElementInspector(
     full: boolean,
     priority: 'hovered' | 'selected' = 'selected',
   ): void {
-    if (!element || element === host || disposed) return;
+    if (!element || element === host || disposed || !analysisEnabled) return;
     try {
       options.onPriority?.(element, priority);
     } catch {
@@ -363,7 +419,7 @@ export function startElementInspector(
     render();
   }
   function refreshMetadata(): void {
-    if (!selected?.isConnected || disposed) return;
+    if (!selected?.isConnected || disposed || !analysisEnabled) return;
     try {
       metadata = extractElementMetadata(selected);
       error = null;
@@ -417,7 +473,7 @@ export function startElementInspector(
     if (node.textContent !== value) node.textContent = value;
   }
   function render(): void {
-    if (!selected) return;
+    if (!selected || !analysisEnabled) return;
     chrome();
     if (!selected.isConnected) {
       close();
@@ -548,7 +604,7 @@ export function startElementInspector(
     if (!disposed) render();
   }
   function schedule(): void {
-    if (disposed || frame) return;
+    if (disposed || !analysisEnabled || frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
       try {
@@ -565,6 +621,7 @@ export function startElementInspector(
   }
   // A single bounded dwell timer avoids replacing a preview while crossing to it.
   function queueHover(element: Element, full: boolean): void {
+    if (!analysisEnabled) return;
     if (element === selected) {
       clearTimeout(hoverTimer);
       hoverTimer = undefined;
@@ -626,7 +683,7 @@ export function startElementInspector(
     );
   }
   function pointer(event: PointerEvent): void {
-    if (owned(event) || pinned || !menu.hidden) return;
+    if (!analysisEnabled || owned(event) || pinned || !menu.hidden) return;
     const element = target(event);
     if (!element) return;
     lastPoint = { x: event.clientX, y: event.clientY, doc: element.ownerDocument };
@@ -690,6 +747,7 @@ export function startElementInspector(
   }
   function pointerDown(event: PointerEvent): void {
     pointerSelection = false;
+    if (!analysisEnabled) return;
     if (owned(event) || (!inspecting && !event.altKey) || event.button !== 0) return;
     const element = target(event);
     if (!element) return;
@@ -702,6 +760,7 @@ export function startElementInspector(
     pin.focus({ preventScroll: true });
   }
   function click(event: MouseEvent): void {
+    if (!analysisEnabled) return;
     // Opening the panel can move the mouse-up hit target. Consume the click
     // paired with our pointer-down instead of selecting its common ancestor.
     if (pointerSelection) {
@@ -725,6 +784,7 @@ export function startElementInspector(
     pin.focus({ preventScroll: true });
   }
   function context(event: MouseEvent): void {
+    if (!analysisEnabled) return;
     if (owned(event) || (!inspecting && !event.altKey)) return;
     const element = target(event);
     if (!element) return;
@@ -739,6 +799,7 @@ export function startElementInspector(
     menu.querySelector('button')?.focus();
   }
   function key(event: KeyboardEvent): void {
+    if (!analysisEnabled) return;
     const isOwned = owned(event);
     const element = target(event);
     const editing = element?.matches(
@@ -807,6 +868,7 @@ export function startElementInspector(
   function observeRoot(root: Document | ShadowRoot): void {
     if (roots.has(root) || roots.size >= 64) return;
     const mutation = new MutationObserver((records) => {
+      if (!analysisEnabled) return;
       if (records.every((record) => record.target === host || host.contains(record.target))) return;
       schedule();
       if (
@@ -881,7 +943,7 @@ export function startElementInspector(
     observeRoot(doc);
   }
   function discover(): void {
-    if (disposed) return;
+    if (disposed || !analysisEnabled) return;
     for (const [doc, release] of documents)
       if (
         doc !== document &&
@@ -992,10 +1054,12 @@ export function startElementInspector(
     if (selected && !document.hidden) schedule();
   }, 100);
   const handle: ElementInspectorHandle = {
+    setAnalysisEnabled,
     setInspecting,
     getSnapshot: () => {
       const mapping = selected && metadata ? resolveElementSource(selected) : null;
       return {
+        analysisEnabled,
         inspecting,
         pinned,
         interacting: panelEngaged,
@@ -1019,13 +1083,8 @@ export function startElementInspector(
       cancelAnimationFrame(frame);
       clearInterval(geometryTimer);
       clearTimeout(discoveryTimer);
-      documents.forEach((release) => release());
-      frames.forEach((release) => release());
-      roots.forEach((mutation) => mutation.disconnect());
+      releaseObservation();
       cleanups.forEach((release) => release());
-      documents.clear();
-      frames.clear();
-      roots.clear();
       previousFocus = null;
       host.remove();
       if (window.__DEVANALYST_INSPECTOR__ === handle) delete window.__DEVANALYST_INSPECTOR__;

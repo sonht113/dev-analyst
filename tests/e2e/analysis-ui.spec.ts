@@ -20,7 +20,7 @@ return <main><h1>日本語の注文画面</h1><button id="counter" onClick={()=>
 {visible&&<button id="save" disabled={busy} onClick={save}>保存</button>}
 <button id="rare" onClick={save}>申請内容を承認する</button>
 <button id="failure" onClick={save}>失敗を試す</button>
-<button id="unknown" onClick={externalHandler}>確認処理</button><Private/></main>}
+<button id="unknown" onClick={externalHandler}>確認処理</button><button id="analysis-switch" onClick={save}>解析の切り替え</button><Private/></main>}
 const externalHandler=globalThis.unresolvedHandler;`;
 const state = (page: Page) =>
   page.evaluate(() => window.__DEVANALYST_INSPECTOR__?.getSnapshot().inspection ?? null);
@@ -116,6 +116,33 @@ test('hover renders lightweight translation without AI and preserves ordinary ho
   await page.locator('#counter').click();
   await expect(page.locator('#counter')).toHaveText('Count 1');
   expect(await inferenceCount()).toBe(before);
+});
+
+test('turning analysis off clears an in-flight AI selection and ignores late results until explicitly re-enabled', async ({
+  page,
+}) => {
+  await open(page, '#analysis-switch');
+  await expect
+    .poll(async () => (await state(page))?.ai.state, { timeout: 15000 })
+    .toBe('ANALYZING');
+  await page.getByRole('button', { name: 'Turn off analysis', exact: true }).click();
+  await expect.poll(() => state(page)).toBeNull();
+  await expect(panel(page)).toBeHidden();
+  const calls = await inferenceCount();
+  // The owned provider's result normally arrives after 800 ms.
+  await page.waitForTimeout(1000);
+  expect(await inferenceCount()).toBe(calls);
+  expect(await state(page)).toBeNull();
+  await expect(panel(page)).toBeHidden();
+  await page.locator('#counter').click({ modifiers: ['Alt'] });
+  await expect(page.locator('#counter')).toHaveText('Count 1');
+  await page.getByRole('button', { name: 'Turn on analysis', exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.__DEVANALYST_BRIDGE__?.getSnapshot().status))
+    .toBe('connected');
+  await open(page, '#analysis-switch');
+  await expect.poll(async () => (await state(page))?.ai.state, { timeout: 15000 }).toBe('READY');
+  await expect(panel(page)).toBeVisible();
 });
 
 test('Alt+Click progressively displays scoped evidence, call chains and independent copy actions', async ({

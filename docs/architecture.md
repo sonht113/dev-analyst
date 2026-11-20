@@ -1,5 +1,7 @@
 # DevAnalyst architecture
 
+The [floating analysis switch](adr/0016-floating-analysis-toggle.md) coordinates browser inspection and tab-owned analysis through the existing bridge lifecycle. Off releases DOM observation/selection, cancels/disconnects that client's work and stops its page collector; on reboots the collector and authenticated connection for the current route. Browser lifecycle suspension remains independent of the user's enabled state.
+
 The owner-requested [element flow summary](adr/0015-element-flow-summary.md) keeps translation and selected rendering/value/event outcomes in the primary inspector view, with full evidence in collapsed details. Bounded lexical display-source findings share the existing analyzer/worker/cache contracts; handler guards remain separate from rendering guards. See [UI behavior and limits](inspector-ui.md).
 
 Phase 11 explicitly adds Next.js + React, Vue 3 + Vite and Nuxt 4 alongside React + Vite. [ADR 0013](adr/0013-framework-adapters.md) supersedes the prior React-only rule for these targets. Support remains bounded by the [verified framework guide](frameworks.md).

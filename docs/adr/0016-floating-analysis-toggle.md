@@ -1,0 +1,11 @@
+# ADR 0016 — Floating analysis toggle
+
+Status: accepted for the owner-requested runtime on/off control.
+
+Provide a single persistent floating **Analysis on/off** button. The owner clarified that this control disables all inspection, including passive hover, and re-enabling restores hover previews immediately without activating selection mode. Keep explicit Inspect mode inside the panel and available through its configured shortcut, so its selection-only state is not confused with disabling DevAnalyst. Analysis starts enabled, preserving current behavior. Turning it off closes panel/menu/highlights, clears the selected inspection and detaches inspection observers/event delegates. Native host cursors and interactions are preserved. The floating switch remains keyboard-accessible. Labels follow the existing English/Vietnamese/Japanese display preference. The setting applies to the current document and resets to enabled on a full reload; it is not stored.
+
+The shared browser bridge owns the tab's analysis state. Disable stops/discards the page collector, cancels the selected client request, aborts bootstrap/reconnect work and closes the authenticated DevAnalyst WebSocket. Existing disconnect cleanup removes this client's queued/active worker and AI subscriptions. Other tabs' shared jobs are independent. No additional browser RPC or provider permission is introduced.
+
+Enable recreates the collector (respecting configured `preanalysis:false`) and reconnects through the usual bootstrap/origin/token checks, then collects the current route. Page lifecycle suspension is tracked independently, so online/pageshow/manual reconnect cannot override the off state, and enabling during suspension waits for pageshow. Late replies on the former socket are ignored by the existing socket/generation checks. Native history/HMR/application events retain their ordinary behavior.
+
+Both browser handles expose additive `setAnalysisEnabled(boolean)` methods and snapshot flags. `setInspecting` continues to mean explicit element selection, while `stop()` remains permanent teardown. AI opt-in/permitted paths and separate background consent remain unchanged. The toggle pauses browser-originated work; source instrumentation and the development server remain installed until their normal teardown. Production output must exclude the floating control and runtime.

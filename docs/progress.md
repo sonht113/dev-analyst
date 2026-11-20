@@ -1,5 +1,11 @@
 # DevAnalyst progress
 
+## Owner-requested floating analysis switch
+
+A single floating on/off control now disables all of the tab's hover/selection, page collector and selected analysis, using existing disconnect cancellation for worker/AI subscriptions. Explicit Inspect mode is a panel action/shortcut to avoid confusing selection mode with the master on/off control. Re-enable restores passive hover, reconnects and collects the current route; native cursors, app interaction/HMR and AI consent remain preserved. The control is shared by all four integrations and resets to enabled on a full reload. See [ADR 0016](adr/0016-floating-analysis-toggle.md) and [usage](inspector-ui.md).
+
+Local validation: `pnpm check` passed (lint, typecheck, 359 unit/integration tests, all playground builds and package checks); `pnpm test:e2e` passed all 60 browser tests, including the single-control/disabled-hover regression. Mobile screenshots were visually checked. An initial aggregate run timed out in the existing AI queue and Next/Webpack production tests; both files then passed standalone (57 tests), followed by the successful full aggregate run. AI cancellation coverage uses the owned mock provider, not live authenticated Claude.
+
 ## Owner-requested Japanese playground UI
 
 React, Next, Vue and Nuxt playgrounds now display Japanese navigation, order/status labels, forms, sample data, messages and detail routes with `lang="ja"`. Source literals remain available for Japanese-to-Vietnamese inspection; inspector preferences are independent. Existing framework journeys use the Japanese accessible names and retain HMR/host-behavior checks. See [playground usage](playgrounds.md).

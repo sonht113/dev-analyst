@@ -26,6 +26,7 @@ it('excludes bridge code, endpoints, credentials, and local paths from the real 
         'startBridgeRuntime',
         '__DEVANALYST_INSPECTOR__',
         'devanalyst-inspector',
+        'analysis-toggle',
         'data-devanalyst-overlay',
         'startElementInspector',
         'extractElementMetadata',

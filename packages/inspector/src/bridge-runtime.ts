@@ -10,6 +10,7 @@ import type {
 import { startPagePreanalysis, type BrowserPageAnalysis } from './preanalysis-runtime.js';
 
 export interface BrowserBridgeSnapshot {
+  readonly analysisEnabled: boolean;
   readonly status:
     'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'failed' | 'stopped';
   readonly clientId: string | null;
@@ -22,6 +23,7 @@ export interface BrowserBridgeSnapshot {
 
 export interface BrowserBridgeHandle {
   getSnapshot(): BrowserBridgeSnapshot;
+  setAnalysisEnabled(enabled: boolean): void;
   reconnect(): void;
   stop(): void;
 }
@@ -61,6 +63,8 @@ export function startBridgeRuntime(options: {
   const inspectionPageId = crypto.randomUUID();
   let preanalysis: ReturnType<typeof startPagePreanalysis> | undefined;
   let disposed = false;
+  let analysisEnabled = true;
+  let suspended = false;
   let paused = false;
   let connecting = false;
   let generation = 0;
@@ -80,6 +84,7 @@ export function startBridgeRuntime(options: {
   }
 
   let snapshot: BrowserBridgeSnapshot = {
+    analysisEnabled,
     status: 'connecting',
     clientId: null,
     route: currentRoute('initial'),
@@ -130,7 +135,7 @@ export function startBridgeRuntime(options: {
   }
 
   function capture(reason: NonNullable<RoutePayload['reason']>): void {
-    if (disposed || paused) return;
+    if (disposed || paused || !analysisEnabled) return;
     try {
       const payload = currentRoute(reason);
       if (
@@ -193,7 +198,7 @@ export function startBridgeRuntime(options: {
   }
 
   function retry(): void {
-    if (disposed || paused || retryTimer !== undefined) return;
+    if (disposed || paused || !analysisEnabled || retryTimer !== undefined) return;
     if (attempts >= maxAttempts) {
       publish({ status: 'failed', lastError: 'BRIDGE_DISCONNECTED' });
       return;
@@ -208,7 +213,7 @@ export function startBridgeRuntime(options: {
   }
 
   async function connect(): Promise<void> {
-    if (disposed || paused || connecting || socket !== null) return;
+    if (disposed || paused || !analysisEnabled || connecting || socket !== null) return;
     connecting = true;
     const revision = generation;
     const controller = new AbortController();
@@ -250,7 +255,7 @@ export function startBridgeRuntime(options: {
       ) {
         throw new Error('Invalid bridge endpoint');
       }
-      if (disposed || paused || revision !== generation) return;
+      if (disposed || paused || !analysisEnabled || revision !== generation) return;
       maxAttempts = value['reconnectAttempts'];
       const connection = new WebSocket(endpoint, [
         'devanalyst.v1',
@@ -413,16 +418,69 @@ export function startBridgeRuntime(options: {
   }
 
   function resume(): void {
-    if (disposed) return;
+    if (disposed || !analysisEnabled || suspended) return;
     paused = false;
     attempts = 0;
     void connect();
   }
 
+  const suspend = (): void => {
+    suspended = true;
+    pause();
+  };
+  const show = (): void => {
+    suspended = false;
+    resume();
+  };
+  function createPreanalysis(): ReturnType<typeof startPagePreanalysis> | undefined {
+    if (options.preanalysis === false) return undefined;
+    return startPagePreanalysis({
+      maxMessageBytes: options.maxMessageBytes ?? 16384,
+      send: (type, payload) => {
+        if (
+          !analysisEnabled ||
+          paused ||
+          socket?.readyState !== WebSocket.OPEN ||
+          socket.bufferedAmount >= 32768
+        )
+          return false;
+        const message = JSON.stringify({
+          version: 1,
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          type,
+          payload,
+        });
+        if (new TextEncoder().encode(message).length > (options.maxMessageBytes ?? 16384))
+          return false;
+        socket.send(message);
+        return true;
+      },
+      changed: () => publish({ pageAnalysis: preanalysis?.getSnapshot() ?? null }),
+    });
+  }
+  function setAnalysisEnabled(enabled: boolean): void {
+    if (disposed || analysisEnabled === enabled) return;
+    analysisEnabled = enabled;
+    inspector?.setAnalysisEnabled(enabled);
+    if (!enabled) {
+      inspection?.cancel();
+      preanalysis?.stop();
+      preanalysis = undefined;
+      pause(); // Disconnect removes this client's queued/active server subscriptions too.
+    } else {
+      preanalysis = createPreanalysis();
+    }
+    publish({ analysisEnabled, pageAnalysis: null });
+    if (enabled) resume();
+  }
+
   const committed = (): void => capture('replaceState');
   const handle: BrowserBridgeHandle = {
+    setAnalysisEnabled,
     getSnapshot: () => ({
       ...snapshot,
+      analysisEnabled,
       pageAnalysis: preanalysis?.getSnapshot() ?? null,
       route: { ...snapshot.route },
       serverRoute: snapshot.serverRoute === null ? null : { ...snapshot.serverRoute },
@@ -446,8 +504,8 @@ export function startBridgeRuntime(options: {
       window.removeEventListener('popstate', pop);
       window.removeEventListener('hashchange', hash);
       window.removeEventListener('devanalyst:route-committed', committed);
-      window.removeEventListener('pagehide', pause);
-      window.removeEventListener('pageshow', resume);
+      window.removeEventListener('pagehide', suspend);
+      window.removeEventListener('pageshow', show);
       window.removeEventListener('online', resume);
       window.removeEventListener('devanalyst:mapping-invalidated', mappingInvalidated);
       if (window.__DEVANALYST_BRIDGE__ === handle) delete window.__DEVANALYST_BRIDGE__;
@@ -461,34 +519,17 @@ export function startBridgeRuntime(options: {
     window.addEventListener('popstate', pop);
     window.addEventListener('hashchange', hash);
     window.addEventListener('devanalyst:route-committed', committed);
-    window.addEventListener('pagehide', pause);
-    window.addEventListener('pageshow', resume);
+    window.addEventListener('pagehide', suspend);
+    window.addEventListener('pageshow', show);
     window.addEventListener('online', resume);
     window.addEventListener('devanalyst:mapping-invalidated', mappingInvalidated);
-    if (options.preanalysis !== false)
-      preanalysis = startPagePreanalysis({
-        maxMessageBytes: options.maxMessageBytes ?? 16384,
-        send: (type, payload) => {
-          if (socket?.readyState !== WebSocket.OPEN || socket.bufferedAmount >= 32768) return false;
-          const message = JSON.stringify({
-            version: 1,
-            id: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            type,
-            payload,
-          });
-          if (new TextEncoder().encode(message).length > (options.maxMessageBytes ?? 16384))
-            return false;
-          socket.send(message);
-          return true;
-        },
-        changed: () => publish({ pageAnalysis: preanalysis?.getSnapshot() ?? null }),
-      });
+    preanalysis = createPreanalysis();
     inspection = createInspectionClient({
       route: () => snapshot.route,
       pageId: () => preanalysis?.getSnapshot()?.requestId ?? inspectionPageId,
       changed: () => window.dispatchEvent(new Event('devanalyst:inspection')),
       send: (type, payload) => {
+        if (!analysisEnabled || paused) return false;
         if (socket?.readyState !== WebSocket.OPEN || socket.bufferedAmount > 32768) return false;
         const message = JSON.stringify({
           version: 1,
@@ -504,10 +545,15 @@ export function startBridgeRuntime(options: {
       },
     });
     inspector = startElementInspector({
+      onAnalysisEnabled: setAnalysisEnabled,
       ...(options.shortcuts ? { shortcuts: options.shortcuts } : {}),
       openSource: (source: SourceReference, revision?: string) =>
         new Promise<string>((finish) => {
-          if (socket?.readyState !== WebSocket.OPEN || editorRequests.size > 0) {
+          if (
+            !analysisEnabled ||
+            socket?.readyState !== WebSocket.OPEN ||
+            editorRequests.size > 0
+          ) {
             finish('Bridge unavailable or editor launch pending. Reconnect or retry.');
             return;
           }
@@ -533,10 +579,14 @@ export function startBridgeRuntime(options: {
         }),
       theme: options.theme ?? 'system',
       language: options.language ?? 'en',
-      onInspection: (metadata, expanded) => inspection?.inspect(metadata, expanded),
+      onInspection: (metadata, expanded) => {
+        if (analysisEnabled) inspection?.inspect(metadata, expanded);
+      },
       getInspection: () => inspection?.getSnapshot() ?? null,
       onClose: () => inspection?.cancel(),
-      onPriority: (element, priority) => preanalysis?.prioritize(element, priority),
+      onPriority: (element, priority) => {
+        if (analysisEnabled) preanalysis?.prioritize(element, priority);
+      },
     });
     void connect();
   } catch {

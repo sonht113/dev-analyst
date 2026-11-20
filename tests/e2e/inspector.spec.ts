@@ -106,6 +106,70 @@ test('passive hover and Alt hover detect the deepest element without blocking no
   await expect(page.locator('devanalyst-inspector #menu')).toBeHidden();
 });
 
+test('one floating switch disables every hover and selection, preserves native cursors, and restores passive hover', async ({
+  page,
+}) => {
+  const toggle = page.locator('devanalyst-inspector #analysis-toggle');
+  await expect(page.locator('devanalyst-inspector #tools').getByRole('button')).toHaveCount(1);
+  const cursorStyles = () =>
+    page
+      .locator('h1, #link, #account')
+      .evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).cursor));
+  const cursors = await cursorStyles();
+  await page.locator('#inner').hover();
+  await expect.poll(async () => (await snapshot(page))?.metadata?.text).toBe('注文を保存');
+  await expect(panel(page)).toBeVisible();
+  await page.keyboard.press('Alt+Shift+KeyI');
+  await expect.poll(async () => (await snapshot(page))?.inspecting).toBe(true);
+  await toggle.click();
+  await expect(toggle).toHaveAccessibleName('Turn on analysis');
+  await expect(panel(page)).toBeHidden();
+  expect(await snapshot(page)).toMatchObject({
+    analysisEnabled: false,
+    inspecting: false,
+    pinned: false,
+    metadata: null,
+  });
+  // New content loaded while off must remain native, then become inspectable on enable.
+  await page.evaluate(() => {
+    const frame = document.createElement('iframe');
+    frame.id = 'switch-frame';
+    frame.srcdoc = '<button onclick="this.textContent=\'Frame clicked\'">Frame button</button>';
+    document.querySelector('main')?.prepend(frame);
+  });
+  const frameButton = page.frameLocator('#switch-frame').getByRole('button');
+  for (const element of [page.locator('h1'), page.locator('#inner'), frameButton]) {
+    await element.hover();
+    // Observe longer than the hover dwell timer: off must not produce any preview.
+    await page.waitForTimeout(300);
+    await expect(panel(page)).toBeHidden();
+    await expect(page.locator('devanalyst-inspector .box')).toHaveCount(0);
+    expect((await snapshot(page))?.metadata).toBeNull();
+  }
+  await frameButton.click({ modifiers: ['Alt'] });
+  await expect(frameButton).toHaveText('Frame clicked');
+  await page.locator('#counter').click({ modifiers: ['Alt'] });
+  await expect(page.locator('#counter')).toHaveText('Count: 1');
+  await page.locator('#account').fill('ordinary typing');
+  await expect(page.locator('#account')).toHaveValue('ordinary typing');
+  await page.locator('#link').click();
+  await expect(page).toHaveURL(/#\/orders$/);
+  expect(await cursorStyles()).toEqual(cursors);
+  await expect(panel(page)).toBeHidden();
+
+  await toggle.click();
+  await expect(toggle).toHaveAccessibleName('Turn off analysis');
+  await frameButton.hover();
+  await expect.poll(async () => (await snapshot(page))?.metadata?.text).toBe('Frame clicked');
+  await expect(panel(page)).toHaveAttribute('role', 'tooltip');
+  await page.locator('#inner').hover();
+  await expect.poll(async () => (await snapshot(page))?.metadata?.text).toBe('注文を保存');
+  await expect(panel(page)).toBeVisible();
+  expect((await snapshot(page))?.inspecting).toBe(false);
+  await page.locator('#counter').click();
+  await expect(page.locator('#counter')).toHaveText('Count: 2');
+});
+
 test('Alt click pins, preserves host handlers and extracts bounded DOM evidence without source claims', async ({
   page,
 }) => {
@@ -212,11 +276,12 @@ test('keyboard inspection, context menu navigation, focus restoration and editab
 }) => {
   await page.locator('#counter').focus();
   await page.keyboard.press('Alt+Shift+KeyI');
+  await expect.poll(async () => (await snapshot(page))?.inspecting).toBe(true);
+  await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: /DevAnalyst · Inspecting/ })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
-  await page.keyboard.press('Enter');
   await expect.poll(async () => (await snapshot(page))?.pinned).toBe(true);
   await expect(page.locator('#counter')).toHaveText('Count: 0');
   await page.keyboard.press('Escape');

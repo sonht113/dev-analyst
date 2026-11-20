@@ -5,6 +5,7 @@ import { devanalyst, type DevAnalystPlugin } from '@devanalyst/vite-plugin';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import type { BrowserBridgeSnapshot } from '../../packages/inspector/src/bridge-runtime.js';
+import { clientEventSchema } from '@devanalyst/core';
 
 let root: string;
 let server: ViteDevServer;
@@ -130,6 +131,103 @@ test('reconnects with a new authenticated session and stops without changing hos
   await page.evaluate(() => history.pushState({ preserved: true }, '', '/after-stop'));
   expect(await page.evaluate(() => history.state)).toEqual({ preserved: true });
   expect(await snapshot(page)).toBeNull();
+});
+
+test('floating analysis switch pauses this tab across native actions, HMR and lifecycle, then resumes the current route', async ({
+  page,
+}, testInfo) => {
+  const sent: string[] = [];
+  let bootstraps = 0;
+  page.on('request', (request) => {
+    if (request.url().endsWith('/__devanalyst/bootstrap')) bootstraps++;
+  });
+  page.on('websocket', (socket) =>
+    socket.on('framesent', ({ payload }) => {
+      let value: unknown;
+      try {
+        value = JSON.parse(String(payload));
+      } catch {
+        return;
+      }
+      const parsed = clientEventSchema.safeParse(value);
+      if (parsed.success && parsed.data.type !== 'inspector.cancel') sent.push(parsed.data.type);
+    }),
+  );
+  await page.reload();
+  await expect.poll(async () => (await snapshot(page))?.status).toBe('connected');
+  await expect
+    .poll(async () => (await snapshot(page))?.pageAnalysis?.completed, { timeout: 15000 })
+    .toBeGreaterThan(0);
+  const client = (await snapshot(page))?.clientId;
+  const origin = await page.evaluate(() => performance.timeOrigin);
+  await page.getByRole('button', { name: 'Count: 0', exact: true }).click({ modifiers: ['Alt'] });
+  await expect(page.locator('devanalyst-inspector #panel')).toBeVisible();
+  const toggle = page.locator('devanalyst-inspector #analysis-toggle');
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await toggle.focus();
+  await page.keyboard.press('Space');
+  await expect(toggle).toHaveAccessibleName('Turn on analysis');
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(toggle).toBeFocused();
+  await expect.poll(() => plugin.api.getSnapshot().clients.length).toBe(0);
+  expect(plugin.api.getPageAnalysis(client ?? '')).toBeNull();
+  expect(await snapshot(page)).toMatchObject({
+    analysisEnabled: false,
+    status: 'disconnected',
+    pageAnalysis: null,
+  });
+  await expect(page.locator('devanalyst-inspector #panel')).toBeHidden();
+  await expect(page.locator('devanalyst-inspector .box')).toHaveCount(0);
+  const sentBefore = sent.length,
+    bootstrapsBefore = bootstraps;
+  const file = join(root, 'src/App.tsx'),
+    original = await readFile(file, 'utf8');
+  try {
+    await page.getByRole('button', { name: 'Count: 0', exact: true }).hover();
+    await page.getByRole('button', { name: 'Count: 0', exact: true }).click({ modifiers: ['Alt'] });
+    await expect(page.getByRole('button', { name: 'Count: 1', exact: true })).toBeVisible();
+    await page.keyboard.press('Alt+Shift+KeyI');
+    await page.evaluate(() => {
+      history.pushState({ preserved: true }, '', '/while-off?private=value');
+      window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+      window.dispatchEvent(new Event('online'));
+      window.__DEVANALYST_BRIDGE__?.reconnect();
+    });
+    await writeFile(file, original.replace('Before HMR', 'Paused HMR'));
+    await expect(page.getByRole('heading', { name: 'Paused HMR', exact: true })).toBeVisible();
+    // Observe longer than the collector flush and first automatic reconnect window.
+    await page.waitForTimeout(600);
+    expect(sent).toHaveLength(sentBefore);
+    expect(bootstraps).toBe(bootstrapsBefore);
+    expect((await snapshot(page))?.analysisEnabled).toBe(false);
+    expect(await page.evaluate(() => window.__DEVANALYST_INSPECTOR__?.getSnapshot())).toMatchObject(
+      { analysisEnabled: false, inspecting: false, metadata: null, inspection: null },
+    );
+    await expect(page.locator('devanalyst-inspector #panel')).toBeHidden();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const bounds = await toggle.boundingBox();
+    expect(
+      bounds && bounds.x >= 0 && bounds.x + bounds.width <= 390 && bounds.y + bounds.height <= 844,
+    ).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('analysis-off-mobile.png') });
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    await expect(toggle).toHaveAccessibleName('Turn off analysis');
+    await expect.poll(async () => (await snapshot(page))?.status).toBe('connected');
+    await expect.poll(async () => (await snapshot(page))?.serverRoute?.pathname).toBe('/while-off');
+    await expect
+      .poll(async () => (await snapshot(page))?.pageAnalysis?.completed, { timeout: 15000 })
+      .toBeGreaterThan(0);
+    expect((await snapshot(page))?.clientId).not.toBe(client);
+    expect(await page.evaluate(() => performance.timeOrigin)).toBe(origin);
+    expect(await page.evaluate(() => history.state)).toEqual({ preserved: true });
+    await page.getByRole('button', { name: 'Count: 1', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Count: 2', exact: true })).toBeVisible();
+  } finally {
+    await writeFile(file, original);
+    await expect(page.getByRole('heading', { name: 'Before HMR', exact: true })).toBeVisible();
+  }
 });
 
 test('pauses for page lifecycle suspension, resumes, and preserves native navigation errors', async ({

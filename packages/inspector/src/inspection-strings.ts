@@ -1,5 +1,9 @@
 export type DisplayLanguage = 'en' | 'vi' | 'ja';
 const en = {
+  analysisOn: 'DevAnalyst · Analysis on',
+  analysisOff: 'DevAnalyst · Analysis off',
+  enableAnalysis: 'Turn on analysis',
+  disableAnalysis: 'Turn off analysis',
   flow: 'Element flow',
   value: 'Displayed value source',
   interaction: 'Events and outcomes',
@@ -91,6 +95,10 @@ const en = {
 };
 export type Label = keyof typeof en;
 const vi: Record<Label, string> = {
+  analysisOn: 'DevAnalyst · Phân tích bật',
+  analysisOff: 'DevAnalyst · Phân tích tắt',
+  enableAnalysis: 'Bật phân tích',
+  disableAnalysis: 'Tắt phân tích',
   flow: 'Luồng hoạt động',
   value: 'Nguồn giá trị hiển thị',
   interaction: 'Sự kiện và kết quả',
@@ -180,6 +188,10 @@ const vi: Record<Label, string> = {
   terms: 'Độ tin cậy mô tả bằng chứng nguồn, không chứng minh thực thi.',
 };
 const ja: Record<Label, string> = {
+  analysisOn: 'DevAnalyst · 解析オン',
+  analysisOff: 'DevAnalyst · 解析オフ',
+  enableAnalysis: '解析をオンにする',
+  disableAnalysis: '解析をオフにする',
   flow: '要素の動作フロー',
   value: '表示値の参照元',
   interaction: 'イベントと結果',
