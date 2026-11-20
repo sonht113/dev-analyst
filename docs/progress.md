@@ -8,6 +8,8 @@ CLI version output now reads installed package metadata instead of a fixed found
 
 Pre-publication validation for `@sonht113/*`: all eleven independent builds, `pnpm check` (361 tests), 60 E2E tests and an isolated archive consumer passed. The consumer verified eleven public imports, private-path rejection, CLI beta version, real React/Vite runtime serving with zero errors and production exclusion. See the release procedure for registry publication status.
 
+**Published:** all eleven `@sonht113/*` packages at `0.1.0-beta.1` were remotely verified with the `beta` tag and MIT license. A fresh public-registry consumer passed the same import/CLI/runtime/production checks without local tarballs or overrides. npm also assigned `latest` to the initial prerelease; its removal attempt returned HTTP 400, so both tags currently point to the beta. No stable version or complete product acceptance is claimed. See [verified release outcome](releasing.md#verified-registry-outcome).
+
 ## Vite mapping runtime loading follow-up
 
 Reproduced Vite's `Pre-transform error: Failed to load url /__devanalyst/mapping-runtime.js` at both `/` and `/app/`. The middleware served the runtime correctly, but Vite's import warmup bypassed middleware and tried loading the URL as a file. Client-only `resolveId`/`load` now supply the actual public mapping/Vue runtime exports at the existing URLs, including Vue's relative import. Regression tests capture Vite errors and verify real warmed modules plus HTTP responses; existing endpoint access checks remain in place.

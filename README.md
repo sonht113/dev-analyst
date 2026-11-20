@@ -4,7 +4,7 @@
 
 DevAnalyst hiện có tích hợp **React + Vite, Vue 3 + Vite, Next.js + React và Nuxt 4** trong [phạm vi đã kiểm thử](docs/frameworks.md). Bản beta dùng scope npm **`@sonht113/*`**, license **MIT**; tên sản phẩm, binary `devanalyst` và file cấu hình vẫn giữ nguyên. Xem [trạng thái phát hành](docs/releasing.md) để xác nhận version/tag có trên registry.
 
-Bản beta `0.1.0-beta.1` đang được chuẩn bị theo license MIT. Xem [quy trình và trạng thái phát hành](docs/releasing.md); chỉ cài từ registry sau khi package và tag `beta` đã được xác minh.
+Bản beta **`0.1.0-beta.1` đã được phát hành trên npm** theo license MIT; đủ 11 package và tag `beta` đã được xác minh bằng cài đặt độc lập từ registry. Xem [quy trình và trạng thái phát hành](docs/releasing.md), bao gồm trạng thái tag `latest` của lần phát hành đầu.
 
 ## Mục lục
 
@@ -115,7 +115,7 @@ Bridge WebSocket chọn port loopback riêng, tự quản lý credential và lif
 ### Xác nhận cài đặt thành công
 
 1. Mở đúng URL ứng dụng; counter hoặc navigation của app vẫn hoạt động bình thường.
-2. Thấy nút **DevAnalyst · Inspect** ở góc màn hình.
+2. Thấy nút nổi **DevAnalyst · Analysis on/off** ở góc dưới bên phải màn hình.
 3. Alt+Click phần tử có mapping: inspector hiển thị file, dòng/cột và `VERIFIED`.
 4. Phân tích nguồn chuyển sang `AST READY`; page pre-analysis cập nhật tiến độ khi phát hiện phần tử và sau navigation.
 
@@ -153,16 +153,17 @@ Snapshot inspector có thể chứa text đang hiển thị trong app; giữ d�
 
 Playground hiện là dashboard quản lý **36 đơn hàng giả lập**: KPI, tìm kiếm/lọc/sắp xếp/phân trang, chọn nhiều/phê duyệt, form chi tiết, CSV và API error/retry. Counter/保存 nằm trong một khu vực lab nhỏ để so sánh mapping/HMR. Xem [hành trình thử nghiệm](docs/playgrounds.md).
 
-| Thao tác                             | Kết quả                                                     |
-| ------------------------------------ | ----------------------------------------------------------- |
-| Hover                                | Preview gọn; đưa chuột vào để cuộn/chọn chữ, không gọi AI   |
-| Alt+Hover                            | Xem metadata mở rộng                                        |
-| Alt+Click                            | Chọn và ghim phần tử, xem source/translation/analysis       |
-| Nút **Inspect** hoặc **Alt+Shift+I** | Bật/tắt chế độ inspection chủ động                          |
-| Alt+right-click                      | Mở menu inspection; right-click thường giữ menu browser/app |
-| Escape                               | Đóng selection/menu                                         |
-| Alt+P trong inspector                | Ghim/bỏ ghim                                                |
-| Alt+C trong inspector                | Sao chép metadata                                           |
+| Thao tác                                     | Kết quả                                                      |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| Hover                                        | Preview gọn; đưa chuột vào để cuộn/chọn chữ, không gọi AI    |
+| Alt+Hover                                    | Xem metadata mở rộng                                         |
+| Alt+Click                                    | Chọn và ghim phần tử, xem source/translation/analysis        |
+| Nút nổi **Analysis on/off**                  | Tắt/bật toàn bộ hover, selection và phân tích của tab        |
+| **Inspect** trong panel hoặc **Alt+Shift+I** | Bật/tắt chế độ chọn phần tử chủ động khi DevAnalyst đang bật |
+| Alt+right-click                              | Mở menu inspection; right-click thường giữ menu browser/app  |
+| Escape                                       | Đóng selection/menu                                          |
+| Alt+P trong inspector                        | Ghim/bỏ ghim                                                 |
+| Alt+C trong inspector                        | Sao chép metadata                                            |
 
 Đưa chuột từ phần tử vào panel để đọc, cuộn và thao tác. Nội dung được giữ khi chuột hoặc focus ở trong panel; preview không tự ghim và không gọi AI. Nút **Ghim/Pin** giữ selection khi bạn di chuyển ra ngoài. Panel cuộn trong phần không gian còn trống, tránh tăng chiều cao đè lên nút đang inspect.
 
@@ -182,7 +183,7 @@ Original UI text được giữ nguyên. Translation có thể đến từ gloss
 
 ### Bản beta trên npm
 
-Chọn integration tương ứng sau khi version beta đã được xác minh trên registry:
+Chọn integration tương ứng từ bản beta đã xác minh trên registry:
 
 ```sh
 # React + Vite
