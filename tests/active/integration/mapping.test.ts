@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, writeFile, rm, symlink } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createServer, type ViteDevServer } from 'vite';
+import { createLogger, createServer, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
 import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 import { devanalyst, type ViteIntegrationOptions } from '@devanalyst/vite-plugin';
@@ -27,6 +27,11 @@ async function start(options: ViteIntegrationOptions = {}, base = '/') {
   );
   await writeFile(join(root, 'index.html'), '<div id="root"></div>');
   const plugin = devanalyst(options);
+  const errors: string[] = [];
+  const logger = createLogger('silent');
+  logger.error = (message) => {
+    errors.push(message);
+  };
   const server = await createServer({
     root,
     configFile: false,
@@ -34,6 +39,7 @@ async function start(options: ViteIntegrationOptions = {}, base = '/') {
     optimizeDeps: { noDiscovery: true, include: [] },
     base,
     logLevel: 'silent',
+    customLogger: logger,
     server: { host: '127.0.0.1', port: 0 },
     cacheDir: join(root, 'node_modules/.vite'),
   });
@@ -41,7 +47,7 @@ async function start(options: ViteIntegrationOptions = {}, base = '/') {
   await server.listen();
   const address = server.httpServer?.address();
   if (!address || typeof address === 'string') throw new Error('No server');
-  return { root, server, plugin, url: `http://127.0.0.1:${address.port}` };
+  return { root, server, plugin, errors, url: `http://127.0.0.1:${address.port}` };
 }
 async function transformed(server: ViteDevServer, path = '/src/App.tsx') {
   const result = await server.transformRequest(path);
@@ -49,6 +55,28 @@ async function transformed(server: ViteDevServer, path = '/src/App.tsx') {
   return result;
 }
 describe('real Vite JSX provenance transforms', () => {
+  it.each(['/', '/app/'])(
+    'pre-transforms browser mapping runtimes without filesystem errors at base %s',
+    async (base) => {
+      const { server, url, errors } = await start({}, base);
+      const response = await fetch(url + base + 'src/App.tsx');
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain(`${base}__devanalyst/mapping-runtime.js`);
+      const client = server.environments['client'];
+      if (!client) throw new Error('Missing Vite client environment');
+      for (const name of ['mapping-runtime.js', 'vue-runtime.js']) {
+        await client.warmupRequest(`${base}__devanalyst/${name}`);
+        const warmed = await client.transformRequest(`${base}__devanalyst/${name}`);
+        expect(warmed?.code).toContain('registerSourceModule');
+        const runtime = await fetch(url + base + '__devanalyst/' + name);
+        expect(runtime.status).toBe(200);
+        expect(runtime.headers.get('content-type')).toContain('javascript');
+        expect(await runtime.text()).toContain('registerSourceModule');
+      }
+      await client.waitForRequestsIdle();
+      expect(errors).toEqual([]);
+    },
+  );
   it('instruments original React TSX before Vite and composes source maps through the actual React transform', async () => {
     const { server, root, plugin } = await start();
     const result = await transformed(server);

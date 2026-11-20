@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { Plugin } from 'vite';
 import { bridgeOptionsSchema, configSchema, DevAnalystError } from '@devanalyst/core';
@@ -46,19 +46,39 @@ export function devanalyst(options: ViteIntegrationOptions = {}): DevAnalystPlug
   const firstReady: DevAnalystPluginApi['ready'] = new Promise((resolvePromise) => {
     resolveFirst = resolvePromise;
   });
+  function mappingRuntime(id: string): string | undefined {
+    if (!active || !current || !['starting', 'ready'].includes(current.getSnapshot().state))
+      return undefined;
+    if (id === `${current.namespace}mapping-runtime.js`)
+      return '@devanalyst/inspector/mapping-runtime';
+    if (id === `${current.namespace}vue-runtime.js`) return '@devanalyst/inspector/vue-runtime';
+    return undefined;
+  }
   const plugin: DevAnalystPlugin = {
     name: 'devanalyst',
     enforce: 'pre',
-    resolveId(source) {
-      if (
-        active &&
+    resolveId(source, importer, resolveOptions) {
+      if (resolveOptions.ssr || this.environment?.config.consumer === 'server') return null;
+      const id =
+        source === './mapping-runtime.js' &&
         current &&
-        [`${current.namespace}mapping-runtime.js`, `${current.namespace}vue-runtime.js`].includes(
-          source,
-        )
-      )
-        return { id: source, external: true };
+        importer === `${current.namespace}vue-runtime.js`
+          ? `${current.namespace}mapping-runtime.js`
+          : source;
+      if (mappingRuntime(id)) return id;
       return null;
+    },
+    async load(id, loadOptions) {
+      if (loadOptions?.ssr || this.environment?.config.consumer === 'server') return null;
+      const entry = mappingRuntime(id);
+      if (!entry) return null;
+      // Vite pre-transforms local imports without going through HTTP middleware.
+      // Load the same public browser export at its existing URL; HTTP requests
+      // still pass through the bridge's Origin/Host/query checks.
+      return (await readFile(new URL(import.meta.resolve(entry)), 'utf8')).replace(
+        /\/\/# sourceMappingURL=.*$/m,
+        '',
+      );
     },
     handleHotUpdate: {
       order: 'pre',

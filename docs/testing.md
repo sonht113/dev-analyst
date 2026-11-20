@@ -35,6 +35,8 @@ Network tracing is disabled to avoid persisting bootstrap credentials; failures 
 
 ## Phase 03 coverage
 
+`tests/active/integration/mapping.test.ts` also captures the Vite logger during real client import warmup at `/` and `/app/`, asserts no pre-transform errors for mapping/Vue runtimes, and verifies both warmed module code and guarded HTTP runtime responses. This catches middleware-only runtime serving that can pass browser tests while emitting missing-file errors in the dev terminal.
+
 The inspector also captures frame load in observed parent documents so a newly loaded same-origin document can receive its first inspection before debounced subtree discovery. A deterministic load-handler regression supplements native Playwright frame clicks; see [CI follow-up](ci-watcher-validation.md).
 
 The separate `tests/e2e/inspector.spec.ts` fixture runs with real React + Vite and the injected runtime, alongside the Phase 02 bridge suite. It covers passive/modifier hover, nested selection, disabled controls, SVG, pin/copy/close, keyboard/context menus/focus restoration, normal links/forms/typing/right-click, bounded/private metadata, same-origin nested frames/open shadows, scrolling/resizing/layout changes, host CSS isolation and event boundaries, dynamic React/SPA/HMR, disconnect/reconnect, clipboard/DOM-read failure and recovery, passive-tooltip tab order, focus preservation after returning to host inputs and stop cleanup. Attribute-policy unit tests verify forbidden fields are never requested. Real production-build tests continue to check inspector exclusion.

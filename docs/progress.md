@@ -1,5 +1,11 @@
 # DevAnalyst progress
 
+## Vite mapping runtime loading follow-up
+
+Reproduced Vite's `Pre-transform error: Failed to load url /__devanalyst/mapping-runtime.js` at both `/` and `/app/`. The middleware served the runtime correctly, but Vite's import warmup bypassed middleware and tried loading the URL as a file. Client-only `resolveId`/`load` now supply the actual public mapping/Vue runtime exports at the existing URLs, including Vue's relative import. Regression tests capture Vite errors and verify real warmed modules plus HTTP responses; existing endpoint access checks remain in place.
+
+Validation: `pnpm check` passed (361 unit/integration tests, lint/typecheck, four playground builds and package checks), and all 60 E2E tests passed. The actual React playground was also started with its existing configuration on an ephemeral local port: HTML, entry, `App.tsx` and mapping runtime returned HTTP 200, with zero captured Vite errors after client import warmup.
+
 ## Owner-requested floating analysis switch
 
 A single floating on/off control now disables all of the tab's hover/selection, page collector and selected analysis, using existing disconnect cancellation for worker/AI subscriptions. Explicit Inspect mode is a panel action/shortcut to avoid confusing selection mode with the master on/off control. Re-enable restores passive hover, reconnects and collects the current route; native cursors, app interaction/HMR and AI consent remain preserved. The control is shared by all four integrations and resets to enabled on a full reload. See [ADR 0016](adr/0016-floating-analysis-toggle.md) and [usage](inspector-ui.md).

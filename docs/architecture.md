@@ -49,6 +49,8 @@ Next maps explicit client JSX only. Its compiler subprocesses ask an owner-only 
 
 The Vite plugin applies only to development serve, with final resolved production checks. It injects a small same-origin module, registers guarded bootstrap/module middleware, starts a separate loopback WebSocket server asynchronously after the host starts listening, and subscribes to allowed file changes. It does not return analysis work from startup or HMR hooks.
 
+Vite's client `resolveId`/`load` hooks also provide the two instrumented mapping runtime imports from explicit public inspector exports, including Vue's relative mapping import. This supplies real module code during Vite pre-transformation, which bypasses HTTP middleware; a local URL marked external alone is insufficient. Existing runtime URLs, base paths and guarded HTTP serving remain unchanged. SSR, disabled integrations and production do not use this loader.
+
 A fresh 256-bit token is returned through a no-store bootstrap response and offered as a WebSocket subprotocol credential. Upgrade checks require a loopback network peer, allowed Vite Origin, exact bridge Host/path, and constant-time token verification. Only the public protocol is negotiated. No credentials appear in URLs, HTML, shipped module source, logs, public snapshots, or persistence. There is no browser file-read or shell RPC.
 
 The browser reports pathname and supported hash-route path from initial state, pushState, replaceState, popstate, and hashchange. It omits query strings, opaque fragments, history state, and input values. Node keeps per-connection route snapshots in memory and acknowledges validated updates. Routes are browser metadata, not verified source behavior and not terminal-log inference.
