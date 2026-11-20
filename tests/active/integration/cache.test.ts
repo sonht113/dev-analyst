@@ -8,10 +8,10 @@ import {
   createWorkerAnalyzer,
   createWorkspaceAccess,
   createStaticAnalyzer,
-} from '@devanalyst/analyzer';
-import { createClaudeCodeProvider } from '@devanalyst/ai';
-import { openPersistentCache, cacheFingerprint } from '@devanalyst/cache';
-import { configSchema, type DevAnalystError, type PageElement } from '@devanalyst/core';
+} from '@sonht113/analyzer';
+import { createClaudeCodeProvider } from '@sonht113/ai';
+import { openPersistentCache, cacheFingerprint } from '@sonht113/cache';
+import { configSchema, type DevAnalystError, type PageElement } from '@sonht113/core';
 import { createViteAnalysisCache } from '../../../packages/vite-plugin/src/cache.js';
 import { claudeFixture } from '../helpers/claude-fixture.js';
 const roots: string[] = [],

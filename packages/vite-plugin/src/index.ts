@@ -1,8 +1,8 @@
 import { readFile, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { Plugin } from 'vite';
-import { bridgeOptionsSchema, configSchema, DevAnalystError } from '@devanalyst/core';
-import { createClaudeCodeProvider } from '@devanalyst/ai';
+import { bridgeOptionsSchema, configSchema, DevAnalystError } from '@sonht113/core';
+import { createClaudeCodeProvider } from '@sonht113/ai';
 import {
   createDevelopmentIntegration,
   loadConfiguration,
@@ -11,7 +11,7 @@ import {
   type DevelopmentApi,
   type DevelopmentSnapshot,
   type DevelopmentHost,
-} from '@devanalyst/server';
+} from '@sonht113/server';
 export {
   loadConfiguration,
   defineConfig,
@@ -20,13 +20,13 @@ export {
   inspectClaude,
   manageCache,
   analyzeSource,
-} from '@devanalyst/server';
+} from '@sonht113/server';
 export type {
   ConfigurationFile,
   SourceMappingDiagnostic,
   BridgeClient,
   BridgeLifecycleEvent,
-} from '@devanalyst/server';
+} from '@sonht113/server';
 export type ViteIntegrationOptions = DevelopmentIntegrationOptions;
 export type DevAnalystPluginApi = DevelopmentApi;
 export type DevAnalystPluginSnapshot = DevelopmentSnapshot;
@@ -50,8 +50,8 @@ export function devanalyst(options: ViteIntegrationOptions = {}): DevAnalystPlug
     if (!active || !current || !['starting', 'ready'].includes(current.getSnapshot().state))
       return undefined;
     if (id === `${current.namespace}mapping-runtime.js`)
-      return '@devanalyst/inspector/mapping-runtime';
-    if (id === `${current.namespace}vue-runtime.js`) return '@devanalyst/inspector/vue-runtime';
+      return '@sonht113/inspector/mapping-runtime';
+    if (id === `${current.namespace}vue-runtime.js`) return '@sonht113/inspector/vue-runtime';
     return undefined;
   }
   const plugin: DevAnalystPlugin = {

@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
-import { createClaudeCodeProvider } from '@devanalyst/ai';
-import { createWorkerAnalyzer, createWorkspaceAccess } from '@devanalyst/analyzer';
-import { openPersistentCache } from '@devanalyst/cache';
-import { DevAnalystError } from '@devanalyst/core';
+import { createClaudeCodeProvider } from '@sonht113/ai';
+import { createWorkerAnalyzer, createWorkspaceAccess } from '@sonht113/analyzer';
+import { openPersistentCache } from '@sonht113/cache';
+import { DevAnalystError } from '@sonht113/core';
 import { loadConfiguration, analysisLimits } from './configuration.js';
 
 export async function inspectClaude(root: string, mode: string) {

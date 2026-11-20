@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os';
 import { createLogger, createServer, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
 import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
-import { devanalyst, type ViteIntegrationOptions } from '@devanalyst/vite-plugin';
+import { devanalyst, type ViteIntegrationOptions } from '@sonht113/vite-plugin';
 import { createSourceMapping } from '../../../packages/vite-plugin/src/mapping.js';
 import { createWorkspaceAccess } from '../../../packages/vite-plugin/src/workspace.js';
-import { defineConfig } from '@devanalyst/core';
+import { defineConfig } from '@sonht113/core';
 const disposals: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
   for (const dispose of disposals.splice(0).reverse()) await dispose();

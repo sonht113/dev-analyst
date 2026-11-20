@@ -1,1 +1,1 @@
-export * from '@devanalyst/server/bridge';
+export * from '@sonht113/server/bridge';

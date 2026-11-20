@@ -1,7 +1,7 @@
 {
-  "name": "@devanalyst/vite-plugin",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@sonht113/vite-plugin",
+  "version": "0.1.0-beta.1",
+  "private": false,
   "description": "DevAnalyst vite-plugin package",
   "type": "module",
   "sideEffects": false,
@@ -31,13 +31,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@devanalyst/core": "workspace:*",
-    "@devanalyst/inspector": "workspace:*",
+    "@sonht113/core": "workspace:*",
+    "@sonht113/inspector": "workspace:*",
     "ws": "8.22.2",
-    "@devanalyst/analyzer": "workspace:*",
-    "@devanalyst/ai": "workspace:*",
-    "@devanalyst/cache": "workspace:*",
-    "@devanalyst/server": "workspace:*"
+    "@sonht113/analyzer": "workspace:*",
+    "@sonht113/ai": "workspace:*",
+    "@sonht113/cache": "workspace:*",
+    "@sonht113/server": "workspace:*"
   },
   "devDependencies": {
     "typescript": "6.0.3",
@@ -46,5 +46,20 @@
   },
   "peerDependencies": {
     "vite": "^8.3.5"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonht113/dev-analyst.git",
+    "directory": "packages/vite-plugin"
+  },
+  "homepage": "https://github.com/sonht113/dev-analyst#readme",
+  "bugs": {
+    "url": "https://github.com/sonht113/dev-analyst/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "beta"
   }
 }

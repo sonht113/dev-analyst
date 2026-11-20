@@ -2,7 +2,7 @@ import { constants } from 'node:fs';
 import { open, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve, sep, dirname } from 'node:path';
 import picomatch from 'picomatch';
-import { DevAnalystError, workspacePathSchema, type DevAnalystConfig } from '@devanalyst/core';
+import { DevAnalystError, workspacePathSchema, type DevAnalystConfig } from '@sonht113/core';
 
 export interface WorkspaceAccess {
   sourcePath(absolute: string, deleted?: boolean): Promise<string | null>;

@@ -1,4 +1,4 @@
-import { defineConfig } from '@devanalyst/core';
+import { defineConfig } from '@sonht113/core';
 
 /** Explicit example for the React playground; Phase 02 does not auto-load this file. */
 export default defineConfig({

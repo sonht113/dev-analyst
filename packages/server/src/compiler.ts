@@ -2,7 +2,7 @@ import { createServer, createConnection, type Socket } from 'node:net';
 import { mkdtemp, chmod, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DevAnalystError, workspacePathSchema } from '@devanalyst/core';
+import { DevAnalystError, workspacePathSchema } from '@sonht113/core';
 export interface CompilerResult {
   readonly code: string;
   readonly map: object | null;

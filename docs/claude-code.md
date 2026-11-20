@@ -1,6 +1,6 @@
 # Claude Code provider API
 
-Build with `pnpm build:packages`, install a supported native Claude Code **2.1.323** executable, and authenticate it separately using Claude's own supported flow. This package retains the project's `@devanalyst/ai` name. It is Node-only, opt-in and development-only; no SDK entitlement is assumed from CLI login.
+Build with `pnpm build:packages`, install a supported native Claude Code **2.1.323** executable, and authenticate it separately using Claude's own supported flow. This package retains the project's `@sonht113/ai` name. It is Node-only, opt-in and development-only; no SDK entitlement is assumed from CLI login.
 
 Source, selected Japanese UI text and questions submitted for an explanation may be transmitted to the Claude provider. Enable only permitted, non-sensitive source paths. Never pass password/form values, private UI contents or credentials. File exclusions and heuristic secret detection cannot identify every possible secret in an allowed source file.
 
@@ -8,7 +8,7 @@ Check the installation and local CLI auth status without inference:
 
 ```sh
 node --input-type=module <<'JS'
-import { createClaudeCodeProvider } from '@devanalyst/ai';
+import { createClaudeCodeProvider } from '@sonht113/ai';
 const provider = createClaudeCodeProvider({ workspaceRoot: process.cwd() });
 console.log(await provider.checkReadiness());
 JS
@@ -18,7 +18,7 @@ Auth status leaves `nonInteractive: 'unverified'`. An explicitly enabled readine
 
 ```sh
 node --input-type=module <<'JS'
-import { createClaudeCodeProvider } from '@devanalyst/ai';
+import { createClaudeCodeProvider } from '@sonht113/ai';
 const provider = createClaudeCodeProvider({
   workspaceRoot: process.cwd(),
   ai: { enabled: true, permittedPaths: ['apps/playground-react/src/**'] },
@@ -34,8 +34,8 @@ JS
 Use deterministic findings as explanation context. The example below is a Node program for an explicitly permitted React workspace; it sends the selected source evidence when enabled:
 
 ```ts
-import { createStaticAnalyzer } from '@devanalyst/analyzer';
-import { createClaudeCodeProvider } from '@devanalyst/ai';
+import { createStaticAnalyzer } from '@sonht113/analyzer';
+import { createClaudeCodeProvider } from '@sonht113/ai';
 
 const workspaceRoot = process.cwd();
 const source = { include: ['apps/playground-react/src/**'] };

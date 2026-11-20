@@ -1,7 +1,7 @@
 {
-  "name": "@devanalyst/cli",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@sonht113/cli",
+  "version": "0.1.0-beta.1",
+  "private": false,
   "description": "DevAnalyst cli package",
   "type": "module",
   "sideEffects": false,
@@ -31,8 +31,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@devanalyst/core": "workspace:*",
-    "@devanalyst/vite-plugin": "workspace:*",
+    "@sonht113/core": "workspace:*",
+    "@sonht113/vite-plugin": "workspace:*",
     "vite": "8.3.5"
   },
   "bin": {
@@ -40,5 +40,20 @@
   },
   "devDependencies": {
     "typescript": "6.0.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonht113/dev-analyst.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/sonht113/dev-analyst#readme",
+  "bugs": {
+    "url": "https://github.com/sonht113/dev-analyst/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "beta"
   }
 }

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { instrumentReactSource } from '@devanalyst/analyzer';
+import { instrumentReactSource } from '@sonht113/analyzer';
 import { createServer as createHttpServer, type Server } from 'node:http';
 import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -12,7 +12,7 @@ import {
   serverEventSchema,
   type BridgeBootstrap,
   type ServerEvent,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 import {
   devanalyst,
   type DevAnalystPlugin,

@@ -5,8 +5,8 @@ import type {
   StaticAnalysisResult,
   StaticAnalysisFinding,
   SourceReference,
-} from '@devanalyst/core';
-import { isSafeCacheContent } from '@devanalyst/cache';
+} from '@sonht113/core';
+import { isSafeCacheContent } from '@sonht113/cache';
 function contains(source: SourceReference, point: SourceReference): boolean {
   const start = source.start,
     end = source.end,

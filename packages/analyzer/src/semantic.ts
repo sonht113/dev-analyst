@@ -9,7 +9,7 @@ import type {
   StaticAnalysisDetail,
   StaticAnalysisFinding,
   SourceReference,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 import type { StaticProject } from './project.js';
 import type { AnalysisBudget } from './analysis-options.js';
 import { AnalysisStop } from './analysis-options.js';

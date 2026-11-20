@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { z } from 'zod';
-import { createWorkspaceAccess, type WorkspaceAccess } from '@devanalyst/analyzer';
-import { evidenceSchema, findingSchema, type Finding } from '@devanalyst/core';
+import { createWorkspaceAccess, type WorkspaceAccess } from '@sonht113/analyzer';
+import { evidenceSchema, findingSchema, type Finding } from '@sonht113/core';
 import type { ExplanationRequest } from './contracts.js';
 import { aiError, type Options } from './options.js';
 import type { Deadline } from './process.js';

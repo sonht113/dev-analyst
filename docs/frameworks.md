@@ -1,6 +1,6 @@
 # Framework integrations
 
-Phase 11 adds Next.js + React, Vue 3 + Vite and Nuxt 4 to React + Vite, by explicit owner authorization ([ADR 0013](adr/0013-framework-adapters.md)). All packages remain private workspace packages; these instructions do not imply public NPM availability. Add the corresponding integration as a development dependency from this workspace or a locally built archive. Build package prerequisites with `pnpm build:packages` first.
+Phase 11 adds Next.js + React, Vue 3 + Vite and Nuxt 4 to React + Vite, by explicit owner authorization ([ADR 0013](adr/0013-framework-adapters.md)). The MIT beta uses `@sonht113/*` ([ADR 0017](adr/0017-mit-beta-publication.md)); see [release status and installation](releasing.md) before installing from npm. Add the corresponding integration as a development dependency. Workspace consumers use `workspace:*` and build prerequisites with `pnpm build:packages` first.
 
 ## Verified envelope
 
@@ -19,7 +19,7 @@ Verification uses native compilers/servers, Chromium, source evidence, HMR and r
 // vite.config.ts
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import { devanalystVue } from '@devanalyst/vue-plugin';
+import { devanalystVue } from '@sonht113/vue-plugin';
 
 export default defineConfig({ plugins: [devanalystVue(), vue()] });
 ```
@@ -36,14 +36,14 @@ Register the compiler configuration helper:
 
 ```ts
 // next.config.ts
-import { withDevAnalyst } from '@devanalyst/next-plugin';
+import { withDevAnalyst } from '@sonht113/next-plugin';
 export default withDevAnalyst({ reactStrictMode: true });
 ```
 
 Include the client bootstrap once in the App Router root layout:
 
 ```tsx
-import { DevAnalystClient } from '@devanalyst/next-plugin/client';
+import { DevAnalystClient } from '@sonht113/next-plugin/client';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html>
@@ -61,7 +61,7 @@ Use the public development wrapper in a development-only script:
 ```js
 // dev.mjs
 import process from 'node:process';
-import { startNextDevelopment } from '@devanalyst/next-plugin';
+import { startNextDevelopment } from '@sonht113/next-plugin';
 const server = await startNextDevelopment({
   root: process.cwd(),
   port: 3000,
@@ -87,7 +87,7 @@ The tested setup uses App Router, root base path, local HTTP, native macOS and t
 
 ```ts
 // nuxt.config.ts
-export default defineNuxtConfig({ modules: ['@devanalyst/nuxt-module'] });
+export default defineNuxtConfig({ modules: ['@sonht113/nuxt-module'] });
 ```
 
 Normal `nuxt dev` automatically attaches the shared development services to the public Nuxt/Vite/server lifecycle and injects the client runtime. The module adds a development-only `page:finish` notification so committed Nuxt navigation triggers new structural pre-analysis even when navigation started before hydration. It never sends page values/query strings.
@@ -96,7 +96,7 @@ The tested configuration is the default Vite builder, local HTTP, default app di
 
 ## Configuration, diagnosis and recovery
 
-All integrations share [typed configuration, consent, shortcuts, depth, exclusions, debug and editor safeguards](configuration.md). Import `defineConfig` from the installed integration (`@devanalyst/vue-plugin`, `@devanalyst/next-plugin` or `@devanalyst/nuxt-module`). Vue uses the Vite mode; Next/Nuxt select the `development` environment. Config changes require restart. Next source defaults include `app/**`, `src/**`, `pages/**`; Nuxt includes `app/**`, `components/**`, `pages/**`, `composables/**`. Extend includes explicitly for authorized local packages. Mandatory sensitive exclusions still apply.
+All integrations share [typed configuration, consent, shortcuts, depth, exclusions, debug and editor safeguards](configuration.md). Import `defineConfig` from the installed integration (`@sonht113/vue-plugin`, `@sonht113/next-plugin` or `@sonht113/nuxt-module`). Vue uses the Vite mode; Next/Nuxt select the `development` environment. Config changes require restart. Next source defaults include `app/**`, `src/**`, `pages/**`; Nuxt includes `app/**`, `components/**`, `pages/**`, `composables/**`. Extend includes explicitly for authorized local packages. Mandatory sensitive exclusions still apply.
 
 `devanalyst status --url http://127.0.0.1:<app-port>` reads the same credential-free diagnostics for every target. `devanalyst dev` and its project/plugin `doctor` checks remain Vite-specific; start Next/Nuxt through their documented integrations. Offline `analyze` currently defaults to React; use the public analyzer API with `framework: 'vue-vite' | 'nuxt' | 'next-react'` for explicit framework analysis. Do not interpret a Vite-only doctor result as evidence that a Next/Nuxt integration is broken.
 

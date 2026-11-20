@@ -22,6 +22,8 @@ The root `tsconfig.json` extends `tsconfig.tools.json` and references the eleven
 
 Install Chromium with `pnpm exec playwright install chromium`. Integration/E2E need permission to bind local loopback ports and launch browser/subprocesses. Use the environment's authorized test runner; document unavailable checks rather than substituting mocks or weakening assertions. Do not run the independence checker concurrently with builds/watchers.
 
+Beta release preparation extends `test:packages` to inspect actual archives for the package README, MIT license, all declared export targets, resolved workspace dependency versions and exclusion of local configuration/cache data. CLI unit/package checks compare `--version` with the installed manifest, including prerelease suffixes. Follow [the release procedure](releasing.md) for an isolated consumer installation and registry verification; local packaging alone is not evidence of publication.
+
 ## Phase 02 coverage
 
 - Core contracts: loopback-only settings, bounded ports/resources/retries, bootstrap endpoint/credential validation, route metadata, existing finding/error/logger rules.

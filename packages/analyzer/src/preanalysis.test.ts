@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Finding, PageElement, StaticAnalysisResult } from '@devanalyst/core';
+import type { Finding, PageElement, StaticAnalysisResult } from '@sonht113/core';
 import { createPageOrchestrator, type PageOrchestratorOptions } from './preanalysis.js';
 const queues: ReturnType<typeof createPageOrchestrator>[] = [];
 afterEach(() => {

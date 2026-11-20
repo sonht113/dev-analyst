@@ -8,7 +8,7 @@ import {
   type MappingSite,
   type SourceModuleManifest,
   type SourceReference,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 
 export interface MappingDiagnostic {
   readonly code:

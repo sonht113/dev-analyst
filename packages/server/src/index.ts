@@ -11,19 +11,19 @@ import {
   type PageOrchestratorOptions,
   type PageAnalysisSnapshot,
   type StaticAnalyzerOptions,
-} from '@devanalyst/analyzer';
+} from '@sonht113/analyzer';
 import {
   createClaudeCodeProvider,
   type ClaudeCodeOptions,
   type ClaudeReadiness,
-} from '@devanalyst/ai';
-import type { CacheInspection, CacheIdentity } from '@devanalyst/cache';
+} from '@sonht113/ai';
+import type { CacheInspection, CacheIdentity } from '@sonht113/cache';
 import { createViteAnalysisCache } from './cache.js';
 import { readFile } from 'node:fs/promises';
 import { resolve, sep, relative, isAbsolute } from 'node:path';
 import type { IncomingMessage } from 'node:http';
 import type { Server, ServerResponse } from 'node:http';
-import type { FrameworkId } from '@devanalyst/core';
+import type { FrameworkId } from '@sonht113/core';
 import {
   bridgeOptionsSchema,
   configSchema,
@@ -32,7 +32,7 @@ import {
   type DevAnalystConfigInput,
   type SerializedError,
   createLogger,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 import {
   startLocalBridge,
   isLoopbackPeer,
@@ -657,16 +657,16 @@ export function createDevelopmentIntegration(
   const stopWatching = server.watchSource(watcher);
   const runtimeAssets = new Map<string, Promise<string>>();
   const assets: Readonly<Record<string, string>> = {
-    'client.js': '@devanalyst/inspector/runtime',
-    'browser.js': '@devanalyst/inspector/browser',
-    'metadata.js': '@devanalyst/inspector/metadata',
-    'inspection-client.js': '@devanalyst/inspector/inspection-client',
-    'inspection-panel.js': '@devanalyst/inspector/inspection-panel',
-    'inspection-strings.js': '@devanalyst/inspector/inspection-strings',
-    'glossary.js': '@devanalyst/inspector/glossary',
-    'preanalysis-runtime.js': '@devanalyst/inspector/preanalysis-runtime',
-    'mapping-runtime.js': '@devanalyst/inspector/mapping-runtime',
-    'vue-runtime.js': '@devanalyst/inspector/vue-runtime',
+    'client.js': '@sonht113/inspector/runtime',
+    'browser.js': '@sonht113/inspector/browser',
+    'metadata.js': '@sonht113/inspector/metadata',
+    'inspection-client.js': '@sonht113/inspector/inspection-client',
+    'inspection-panel.js': '@sonht113/inspector/inspection-panel',
+    'inspection-strings.js': '@sonht113/inspector/inspection-strings',
+    'glossary.js': '@sonht113/inspector/glossary',
+    'preanalysis-runtime.js': '@sonht113/inspector/preanalysis-runtime',
+    'mapping-runtime.js': '@sonht113/inspector/mapping-runtime',
+    'vue-runtime.js': '@sonht113/inspector/vue-runtime',
   };
   server.use((request, response, next) => {
     const url = new URL(request.url ?? '/', 'http://localhost');

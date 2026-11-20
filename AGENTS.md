@@ -1,5 +1,7 @@
 # DevAnalyst contributor instructions
 
+> BETA PUBLICATION SCOPE: The owner selected MIT and explicitly authorized public beta publication under `@sonht113/*`. This supersedes the historical `@devanalyst/*` package naming decision. Keep the DevAnalyst product/configuration/CLI identity and the eleven active package directories. Root and playground packages remain private. See ADR 0017 and `docs/releasing.md`.
+
 > CURRENT FRAMEWORK SCOPE: The owner explicitly authorized Phase 11 to add Next.js + React, Vue 3 + Vite and Nuxt 4 alongside React + Vite. This supersedes the previous React-only restriction for these three targets only. See ADR 0013. Framework support is conditional on passing actual integration tests; no server-only runtime access or generic future integrations may be claimed.
 
 Read the constitution, architecture, implementation plan, progress and testing policy before implementation. Current owner instructions take precedence over historical React-only documents. Preserve all uncommitted Phase 10 work.
@@ -15,7 +17,7 @@ Read the constitution, architecture, implementation plan, progress and testing p
 
 ## Engineering requirements
 
-- Use the DevAnalyst identity, TypeScript strict mode, pnpm workspaces, explicit package exports, and stable public contracts.
+- Use the DevAnalyst identity, `@sonht113/*` package scope, TypeScript strict mode, pnpm workspaces, explicit package exports, and stable public contracts.
 - Separate the browser runtime, Node.js services, React AST/source analysis, Claude Code CLI integration, and cache infrastructure. Use React-specific instrumentation where needed and stable public APIs. Use the Phase 11 adapter contract only for the four authorized integrations; no placeholders or speculative integrations.
 - Prefer deterministic source analysis before AI. Never invent source locations, endpoints, destinations, behavior, or evidence.
 - Classify significant findings as `VERIFIED`, `INFERRED`, or `UNKNOWN`, with evidence, timestamps, and cache state. A verified static relationship does not prove runtime execution.
@@ -34,7 +36,7 @@ Read the constitution, architecture, implementation plan, progress and testing p
 - The active packages are `core`, `vite-plugin`, `inspector`, `analyzer`, `ai`, `cache`, `cli`, `server`, `next-plugin`, `vue-plugin`, and `nuxt-module`. Active apps are `playground-react`, `playground-next`, `playground-vue`, and `playground-nuxt`.
 - Phase 11 reactivates the existing Next/Vue/Nuxt directories without deleting their prior source. Other historical/out-of-scope work stays excluded. Integration files alone do not establish support.
 - Packages are ESM-only. Use `.js` extensions for relative TypeScript imports in library packages, public names for cross-package imports, and `workspace:*` for internal dependencies. Native Next application sources use extensionless TypeScript imports for the tested bundlers; see ADR 0014. Never import another package's source or private subpaths.
-- Keep TypeScript project references synchronized with internal dependencies. `pnpm --filter @devanalyst/<name> build` must build its prerequisites automatically.
+- Keep TypeScript project references synchronized with internal dependencies. `pnpm --filter @sonht113/<name> build` must build its prerequisites automatically.
 - `core` and `inspector` are browser-safe: no Node.js builtins, globals, or Node-only workspace dependencies. Public entry points are `src/index.ts` with explicit exports.
 - Phase 02 implements the Vite bridge, browser route runtime, and CLI dev/doctor. The separately authorized Phase 03 adds the local browser element inspector (see ADR 0005); Phase 04 adds safe React JSX origin mapping (ADR 0006); Phase 05 adds the Node static analysis engine (ADR 0007); Phase 06 adds the opt-in Claude Code CLI provider API with runtime no-tools permissions (ADR 0008). Phase 07 adds progressive route-aware pre-analysis, cancellable AST workers and hash-validated in-memory reuse (ADR 0009); background Claude additionally requires explicit `preanalysis.backgroundAI` consent. Phase 08 adds worker-owned SQLite persistence and validated page/component/element/translation namespaces (ADR 0010); no raw runtime values are persisted. Phase 09 adds independent source-matched translation and selected behavioral/AI inspector presentation (ADR 0011). Phase 10 adds trusted typed file/mode configuration, operational CLI/Claude/bridge diagnostics, configurable shortcuts/depth/exclusions/debug and guarded VS Code/Cursor navigation (ADR 0012). Conversational follow-ups remain pending. Live authenticated AI success is not claimed when local auth is unavailable. All 18 product capabilities in the [implementation plan](docs/implementation-plan.md) remain required for React + Vite.
 - Path schemas validate syntax. Node source reads must use the workspace access policy with containment, mandatory exclusions, canonical-path/inode checks, and size limits. The bridge exposes no file-read RPC. Phase 06's Node AI provider intersects source policy with explicit AI consent and uses fixed no-tools permissions; see ADR 0008 for compatibility and the trusted CLI/admin boundary. Phase 09 authorizes explicit expanded source-backed inspector dispatch with configured AI/path consent. Hover must not start Claude; automatic transmission still needs the separate background consent. Browser requests carry only structural identity and text digests, never raw DOM text or values.
@@ -46,7 +48,7 @@ Read the constitution, architecture, implementation plan, progress and testing p
 - Keep packages private until publication scope, ownership, licensing, and release policy are decided.
 - Vite integration is development-only and currently supports standalone local HTTP Vite 8.3.5+ servers. Never put bridge credentials in URLs, logs, public snapshots, or production bundles. Verify Origin/Host and token before WebSocket upgrade.
 - Keep configureServer and HMR free of analysis work. Vite can configure a replacement before closing its predecessor: maintain per-server lifecycle state and test restart/token rotation.
-- The browser runtime is served from the explicit `@devanalyst/inspector/runtime` export with type-only shared imports. Keep it free of Node.js dependencies and preserve native history methods on teardown.
+- The browser runtime is served from the explicit `@sonht113/inspector/runtime` export with type-only shared imports. Keep it free of Node.js dependencies and preserve native history methods on teardown.
 
 ## Definition of Done
 

@@ -2,7 +2,9 @@
 
 **AI-Powered Frontend Code Inspector** — kiểm tra phần tử trên trình duyệt, tìm đúng vị trí trong source, xem điều kiện hiển thị, handler, quan hệ gọi hàm, API và navigation có bằng chứng nguồn. Inspector hỗ trợ giao diện tiếng Việt/Anh/Nhật, dịch nhãn tiếng Nhật sang tiếng Việt, mở VS Code/Cursor và phân tích Claude Code khi người dùng chủ động bật.
 
-DevAnalyst hiện có tích hợp **React + Vite, Vue 3 + Vite, Next.js + React và Nuxt 4** trong [phạm vi đã kiểm thử](docs/frameworks.md). Các package `@devanalyst/*` vẫn **private**, chưa phát hành lên NPM. Hướng dẫn dưới đây ưu tiên chạy repository và dùng package trong pnpm workspace; không giả định có thể cài chúng từ public registry.
+DevAnalyst hiện có tích hợp **React + Vite, Vue 3 + Vite, Next.js + React và Nuxt 4** trong [phạm vi đã kiểm thử](docs/frameworks.md). Bản beta dùng scope npm **`@sonht113/*`**, license **MIT**; tên sản phẩm, binary `devanalyst` và file cấu hình vẫn giữ nguyên. Xem [trạng thái phát hành](docs/releasing.md) để xác nhận version/tag có trên registry.
+
+Bản beta `0.1.0-beta.1` đang được chuẩn bị theo license MIT. Xem [quy trình và trạng thái phát hành](docs/releasing.md); chỉ cài từ registry sau khi package và tag `beta` đã được xác minh.
 
 ## Mục lục
 
@@ -178,6 +180,26 @@ Original UI text được giữ nguyên. Translation có thể đến từ gloss
 
 ## 5. Thêm DevAnalyst vào ứng dụng
 
+### Bản beta trên npm
+
+Chọn integration tương ứng sau khi version beta đã được xác minh trên registry:
+
+```sh
+# React + Vite
+pnpm add -D @sonht113/vite-plugin@beta
+
+# Vue + Vite
+pnpm add -D @sonht113/vue-plugin@beta
+
+# Next.js
+pnpm add -D @sonht113/next-plugin@beta
+
+# Nuxt
+pnpm add -D @sonht113/nuxt-module@beta
+```
+
+Chỉ cần cài integration tương ứng; registry sẽ resolve các dependency nội bộ. Đăng ký plugin/module theo hướng dẫn bên dưới. CLI tùy chọn được cài riêng bằng `pnpm add -D @sonht113/cli@beta`.
+
 ### Cách đưa package vào app
 
 Các playground trong repository đã có dependency và cấu hình đúng. Nếu chỉ muốn trải nghiệm, bỏ qua phần này.
@@ -192,19 +214,19 @@ Ví dụ app có `name: "my-web-app"` trong `package.json`; chọn **một** l�
 
 ```sh
 # React + Vite
-pnpm --filter my-web-app add -D '@devanalyst/vite-plugin@workspace:*'
+pnpm --filter my-web-app add -D '@sonht113/vite-plugin@workspace:*'
 
 # Vue + Vite
-pnpm --filter my-web-app add -D '@devanalyst/vue-plugin@workspace:*'
+pnpm --filter my-web-app add -D '@sonht113/vue-plugin@workspace:*'
 
 # Next.js
-pnpm --filter my-web-app add -D '@devanalyst/next-plugin@workspace:*'
+pnpm --filter my-web-app add -D '@sonht113/next-plugin@workspace:*'
 
 # Nuxt
-pnpm --filter my-web-app add -D '@devanalyst/nuxt-module@workspace:*'
+pnpm --filter my-web-app add -D '@sonht113/nuxt-module@workspace:*'
 ```
 
-Giữ các dependencies framework của app tương thích với [bảng phiên bản](#3-chạy-playground-và-kiểm-tra-kết-nối), rồi chạy `pnpm build:packages`. Với repository bên ngoài workspace, chưa có quy trình public registry đã phát hành; archive của một integration còn có internal dependencies. Không coi việc cài riêng một `.tgz` là đủ để resolve toàn bộ `@devanalyst/*`.
+Giữ các dependencies framework của app tương thích với [bảng phiên bản](#3-chạy-playground-và-kiểm-tra-kết-nối), rồi chạy `pnpm build:packages` khi dùng workspace. Khi kiểm tra trước publication bằng archive, một `.tgz` integration vẫn cần đầy đủ các dependency nội bộ; xem [quy trình release](docs/releasing.md).
 
 ### React + Vite
 
@@ -214,7 +236,7 @@ Giữ plugin React của app và thêm DevAnalyst một lần:
 // vite.config.ts
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-import { devanalyst } from '@devanalyst/vite-plugin';
+import { devanalyst } from '@sonht113/vite-plugin';
 
 export default defineConfig({
   plugins: [react(), devanalyst()],
@@ -229,7 +251,7 @@ Chạy lệnh Vite dev bình thường. Mapping dùng public React refs cho intr
 // vite.config.ts
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
-import { devanalystVue } from '@devanalyst/vue-plugin';
+import { devanalystVue } from '@sonht113/vue-plugin';
 
 export default defineConfig({
   plugins: [devanalystVue(), vue()],
@@ -247,7 +269,7 @@ Mapping Vue sử dụng compiler SFC và public directive lifecycle, độc lậ
 ```ts
 // next.config.ts
 import type { NextConfig } from 'next';
-import { withDevAnalyst } from '@devanalyst/next-plugin';
+import { withDevAnalyst } from '@sonht113/next-plugin';
 
 const config: NextConfig = { reactStrictMode: true };
 export default withDevAnalyst(config);
@@ -258,7 +280,7 @@ export default withDevAnalyst(config);
 ```tsx
 // app/layout.tsx
 import type { ReactNode } from 'react';
-import { DevAnalystClient } from '@devanalyst/next-plugin/client';
+import { DevAnalystClient } from '@sonht113/next-plugin/client';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -277,7 +299,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 ```js
 // dev.mjs
 import process from 'node:process';
-import { startNextDevelopment } from '@devanalyst/next-plugin';
+import { startNextDevelopment } from '@sonht113/next-plugin';
 
 const server = await startNextDevelopment({
   root: process.cwd(),
@@ -322,7 +344,7 @@ Thêm module vào cấu hình hiện có:
 import { defineNuxtConfig } from 'nuxt/config';
 
 export default defineNuxtConfig({
-  modules: ['@devanalyst/nuxt-module'],
+  modules: ['@sonht113/nuxt-module'],
 });
 ```
 
@@ -357,7 +379,7 @@ Với Next/Nuxt, tạo file thủ công bằng helper của integration tương 
 
 ```ts
 // apps/playground-react/devanalyst.config.ts
-import { defineConfig } from '@devanalyst/vite-plugin';
+import { defineConfig } from '@sonht113/vite-plugin';
 
 export default defineConfig({
   workspaceRoot: '.',
@@ -395,16 +417,16 @@ export default defineConfig({
 
 Khi dùng ví dụ cho framework khác, đổi helper import và source includes theo app:
 
-| Target     | Import `defineConfig` từ  | Include mặc định                                            |
-| ---------- | ------------------------- | ----------------------------------------------------------- |
-| React/Vite | `@devanalyst/vite-plugin` | `['src/**']`                                                |
-| Vue/Vite   | `@devanalyst/vue-plugin`  | `['src/**']`                                                |
-| Next       | `@devanalyst/next-plugin` | `['app/**', 'src/**', 'pages/**']`                          |
-| Nuxt       | `@devanalyst/nuxt-module` | `['app/**', 'components/**', 'pages/**', 'composables/**']` |
+| Target     | Import `defineConfig` từ | Include mặc định                                            |
+| ---------- | ------------------------ | ----------------------------------------------------------- |
+| React/Vite | `@sonht113/vite-plugin`  | `['src/**']`                                                |
+| Vue/Vite   | `@sonht113/vue-plugin`   | `['src/**']`                                                |
+| Next       | `@sonht113/next-plugin`  | `['app/**', 'src/**', 'pages/**']`                          |
+| Nuxt       | `@sonht113/nuxt-module`  | `['app/**', 'components/**', 'pages/**', 'composables/**']` |
 
 Đừng dùng nguyên `include: ['src/**']` cho app có source trong `app/`; các file ngoài allowlist sẽ không được map/đọc/mở editor. `.env`, Git internals, keys và các sensitive patterns bắt buộc vẫn bị loại trừ dù thay custom exclusions.
 
-`defineConfig` của các integration hỗ trợ **file input và environments**. Helper cùng tên trong `@devanalyst/core` là validator cho cấu hình đã resolve; không dùng nó cho file có `environments`.
+`defineConfig` của các integration hỗ trợ **file input và environments**. Helper cùng tên trong `@sonht113/core` là validator cho cấu hình đã resolve; không dùng nó cho file có `environments`.
 
 ### Environment và precedence
 
@@ -431,7 +453,7 @@ Sau khi sửa file config hoặc module cấu hình được import, **restart d
 Nếu app ở `apps/my-web-app` cần đọc `packages/ui` cùng repository, đặt config tại app root và giới hạn workspace như sau:
 
 ```ts
-import { defineConfig } from '@devanalyst/vite-plugin';
+import { defineConfig } from '@sonht113/vite-plugin';
 
 export default defineConfig({
   workspaceRoot: '../..',
@@ -535,7 +557,7 @@ Provider giữ no-tools runtime enforcement, source/hash/range validation, secre
 
 ## 9. CLI, diagnostics và cache
 
-Trong repository, chạy từ root bằng `node packages/cli/dist/bin.js`. Khi private CLI được cài/link đầy đủ vào consumer, binary tương ứng là `devanalyst`.
+Trong repository, chạy từ root bằng `node packages/cli/dist/bin.js`. Khi `@sonht113/cli` được cài/link đầy đủ vào consumer, binary tương ứng là `devanalyst`.
 
 | Nhu cầu                                        | Ví dụ từ root repository                                                                    |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -740,4 +762,4 @@ packages/
 | [Project constitution](docs/project-constitution.md)   | Identity, engineering, privacy và phase discipline                                            |
 | [Conversation overview](docs/chat-session-overview.md) | Bàn giao các phase và quyết định đã chấp nhận                                                 |
 
-Các kết quả validation là lịch sử thực chạy, không phải khẳng định test đã được chạy lại mỗi lần sửa README. Conversational follow-ups, live authenticated model quality, whole-project performance/accessibility hardening và release preparation vẫn còn pending. Ownership/license/release policy cần được quyết định trước publication; package vẫn private. Angular, Svelte và framework khác cần owner authorization riêng.
+Các kết quả validation là lịch sử thực chạy, không phải khẳng định test đã được chạy lại mỗi lần sửa README. Conversational follow-ups, live authenticated model quality và whole-project performance/accessibility hardening vẫn còn pending. Owner đã chọn MIT và scope `@sonht113/*` cho beta; việc phát hành beta không đồng nghĩa hoàn tất toàn bộ sản phẩm. Angular, Svelte và framework khác cần owner authorization riêng.

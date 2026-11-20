@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { configSchema, sourceReferenceSchema } from '@devanalyst/core';
+import { configSchema, sourceReferenceSchema } from '@sonht113/core';
 export const analysisLimitsSchema = z.strictObject({
   maxFiles: z.number().int().min(1).max(128).default(64),
   maxBytes: z

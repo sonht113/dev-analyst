@@ -1,4 +1,4 @@
-import type { DevAnalystConfig, SourceReference } from '@devanalyst/core';
+import type { DevAnalystConfig, SourceReference } from '@sonht113/core';
 import { createInspectionPanel } from './inspection-panel.js';
 import type { InspectionSnapshot } from './inspection-client.js';
 import { label, type DisplayLanguage } from './inspection-strings.js';

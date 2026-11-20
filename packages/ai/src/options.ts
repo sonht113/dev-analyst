@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { configSchema, DevAnalystError } from '@devanalyst/core';
+import { configSchema, DevAnalystError } from '@sonht113/core';
 
 export const claudeOptionsSchema = z.strictObject({
   workspaceRoot: z.string().min(1).max(4096),

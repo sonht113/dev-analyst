@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
-import { devanalyst, type DevAnalystPlugin } from '@devanalyst/vite-plugin';
+import { devanalyst, type DevAnalystPlugin } from '@sonht113/vite-plugin';
 import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import process from 'node:process';
@@ -31,7 +31,7 @@ test.beforeAll(async () => {
   process.env['PATH'] = `${join(root, 'bin')}:${previousPath ?? ''}`;
   await writeFile(
     join(root, 'devanalyst.config.ts'),
-    `import { defineConfig } from '@devanalyst/vite-plugin'; export default defineConfig({ editor:{command:'cursor'}, routes:{exclude:['/private/**']}, environments:{testing:{inspector:{theme:'dark',shortcuts:{toggle:'Control+Shift+KeyD',pin:'Control+KeyP',copy:'Control+KeyY'}},analysis:{depth:'shallow'}}} });`,
+    `import { defineConfig } from '@sonht113/vite-plugin'; export default defineConfig({ editor:{command:'cursor'}, routes:{exclude:['/private/**']}, environments:{testing:{inspector:{theme:'dark',shortcuts:{toggle:'Control+Shift+KeyD',pin:'Control+KeyP',copy:'Control+KeyY'}},analysis:{depth:'shallow'}}} });`,
   );
   plugin = devanalyst();
   server = await createServer({

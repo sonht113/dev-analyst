@@ -3,7 +3,7 @@ import { constants } from 'node:fs';
 import { access, realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { delimiter, isAbsolute, join } from 'node:path';
-import { DevAnalystError } from '@devanalyst/core';
+import { DevAnalystError } from '@sonht113/core';
 import { aiError, type Options } from './options.js';
 
 export function cancellation(signal: AbortSignal): DevAnalystError {

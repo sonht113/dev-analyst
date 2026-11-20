@@ -1,4 +1,4 @@
-import type { Finding } from '@devanalyst/core';
+import type { Finding } from '@sonht113/core';
 
 export type CacheLookup =
   | { readonly status: 'miss' }

@@ -8,7 +8,7 @@ import { readWorkspaces } from './check-boundaries.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const packages = (await readWorkspaces(root)).filter(({ manifest }) =>
-  manifest.name.startsWith('@devanalyst/'),
+  manifest.name.startsWith('@sonht113/'),
 );
 
 for (const target of packages) {

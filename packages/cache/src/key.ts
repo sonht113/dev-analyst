@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { DevAnalystError } from '@devanalyst/core';
+import { DevAnalystError } from '@sonht113/core';
 import { cacheIdentitySchema, type CacheIdentityInput } from './contracts.js';
 export function cacheFingerprint(value: unknown): string {
   function stable(input: unknown, depth: number): unknown {

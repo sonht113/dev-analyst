@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import type { SourceReference } from '@devanalyst/core';
+import type { SourceReference } from '@sonht113/core';
 import type { SourceInspectionOrigin } from './source-inspection.js';
 /** Compatibility alias for the React JSX extractor. */
 export type JSXInspectionOrigin = SourceInspectionOrigin;

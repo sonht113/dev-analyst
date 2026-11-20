@@ -2,7 +2,7 @@ import {
   devanalyst,
   type DevAnalystPlugin,
   type ViteIntegrationOptions,
-} from '@devanalyst/vite-plugin';
+} from '@sonht113/vite-plugin';
 /** Vue SFC directives and compiler positions; React JSX instrumentation is never applied. */
 export function devanalystVue(
   options: Omit<ViteIntegrationOptions, 'framework'> = {},
@@ -11,5 +11,5 @@ export function devanalystVue(
 }
 export default devanalystVue;
 
-export { defineConfig } from '@devanalyst/vite-plugin';
-export type { ConfigurationFile } from '@devanalyst/vite-plugin';
+export { defineConfig } from '@sonht113/vite-plugin';
+export type { ConfigurationFile } from '@sonht113/vite-plugin';

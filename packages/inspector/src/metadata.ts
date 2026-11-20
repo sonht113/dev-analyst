@@ -1,4 +1,4 @@
-import type { ElementSourceMapping, SourceReference } from '@devanalyst/core';
+import type { ElementSourceMapping, SourceReference } from '@sonht113/core';
 import { resolveElementSource } from './mapping-runtime.js';
 /** Local, bounded DOM observations. These are not source-code or behavior evidence. */
 export interface ElementMetadata {

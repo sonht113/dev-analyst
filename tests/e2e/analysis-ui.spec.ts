@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
-import { devanalyst, type DevAnalystPlugin } from '@devanalyst/vite-plugin';
+import { devanalyst, type DevAnalystPlugin } from '@sonht113/vite-plugin';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { claudeFixture } from '../active/helpers/claude-fixture.js';

@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile, symlink, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
-import { defineConfig } from '@devanalyst/core';
+import { defineConfig } from '@sonht113/core';
 import { createWorkspaceAccess } from './workspace.js';
 
 const roots: string[] = [];

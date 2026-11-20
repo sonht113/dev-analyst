@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import type { FrameworkCapabilities, FrameworkId } from '@devanalyst/core';
+import type { FrameworkCapabilities, FrameworkId } from '@sonht113/core';
 import { instrumentReactSource, type InstrumentationResult } from './instrumentation.js';
 import { instrumentVueSource } from './vue-source.js';
 
@@ -21,7 +21,7 @@ export function createFrameworkAdapter(id: FrameworkId): FrameworkAdapter {
           code,
           file,
           id === 'nuxt'
-            ? '@devanalyst/nuxt-module/vue-runtime'
+            ? '@sonht113/nuxt-module/vue-runtime'
             : runtime.replace(/mapping-runtime\.js$/, 'vue-runtime.js'),
           id,
         ),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { runCli } from './index.js';
+import { readFile } from 'node:fs/promises';
 
 describe('foundation CLI', () => {
   it.each([
@@ -30,7 +31,7 @@ describe('foundation CLI', () => {
     },
   );
 
-  it('prints the version', async () => {
+  it('prints the installed package version for a prerelease too', async () => {
     const stdout: string[] = [];
     expect(
       await runCli(['--version'], {
@@ -38,7 +39,10 @@ describe('foundation CLI', () => {
         stderr: () => undefined,
       }),
     ).toBe(0);
-    expect(stdout).toEqual(['0.1.0\n']);
+    const metadata: unknown = JSON.parse(
+      await readFile(new URL('../package.json', import.meta.url), 'utf8'),
+    );
+    expect(metadata).toHaveProperty('version', stdout.join('').trim());
   });
 
   it('rejects unavailable commands without echoing arbitrary arguments', async () => {

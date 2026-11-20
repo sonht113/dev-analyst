@@ -1,12 +1,12 @@
 # Static analysis API
 
-`@devanalyst/analyzer` is Node-only. Build the workspace first with `pnpm build:packages`. The engine reads authorized source snapshots and returns source facts; it never imports or executes application/configuration code.
+`@sonht113/analyzer` is Node-only. Build the workspace first with `pnpm build:packages`. The engine reads authorized source snapshots and returns source facts; it never imports or executes application/configuration code.
 
 Run this example from the repository root after installation/build:
 
 ```sh
 node --input-type=module <<'JS'
-import { createStaticAnalyzer } from '@devanalyst/analyzer';
+import { createStaticAnalyzer } from '@sonht113/analyzer';
 
 const analyzer = createStaticAnalyzer({
   workspaceRoot: process.cwd(),
@@ -63,4 +63,4 @@ See [ADR 0007](adr/0007-static-analysis-engine.md) for confidence semantics, res
 
 Phase 07 adds optional `dependencyHashes` to detailed results for cache validation. It fingerprints every authorized snapshot read by the resolver, including JSON configuration and malformed dependencies excluded from semantic findings. `sourceHashes` continues to identify parsed source evidence only. A hash does not make malformed/configuration text behavioral evidence. Page pre-analysis revalidates the complete dependency fingerprint before accepting or reusing results.
 
-Phase 08 adds `missingDependencies` for authorized unresolved candidates and `sourceAliases` for canonical resolver relationships. A new file or symlink retarget can invalidate old resolution even when existing source hashes match. Cache consumers must retain and revalidate these observations. The public `@devanalyst/analyzer/workspace` export exposes guarded access without loading the TypeScript analysis engine.
+Phase 08 adds `missingDependencies` for authorized unresolved candidates and `sourceAliases` for canonical resolver relationships. A new file or symlink retarget can invalidate old resolution even when existing source hashes match. Cache consumers must retain and revalidate these observations. The public `@sonht113/analyzer/workspace` export exposes guarded access without loading the TypeScript analysis engine.

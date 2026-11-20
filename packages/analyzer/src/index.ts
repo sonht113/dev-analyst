@@ -1,4 +1,4 @@
-import type { Finding, SourceReference } from '@devanalyst/core';
+import type { Finding, SourceReference } from '@sonht113/core';
 
 /** Requested source snapshots for bounded deterministic analysis; source coordinates can identify an inspected JSX element. */
 export interface AnalysisRequest {
@@ -21,7 +21,7 @@ export type {
   StaticAnalysisResult,
   StaticAnalysisFinding,
   StaticAnalysisDetail,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 export { createWorkerAnalyzer } from './worker.js';
 export { createPageOrchestrator } from './preanalysis.js';
 export type { PageOrchestratorOptions, PageAnalysisSnapshot } from './preanalysis.js';

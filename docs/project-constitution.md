@@ -7,7 +7,7 @@ Status: foundational requirements supplied in Prompt 00. The owner explicitly au
 - Project name: **DevAnalyst**.
 - Product description: **AI-Powered Frontend Code Inspector**.
 - Intended repository name: `devanalyst`.
-- Proposed NPM scope: `@devanalyst`; availability and ownership must be verified before relying on it.
+- Current NPM scope: `@sonht113`, explicitly selected by the owner for the MIT beta after the original `@devanalyst` organization was unavailable to the authenticated account. See [ADR 0017](adr/0017-mit-beta-publication.md).
 - CLI command: `devanalyst`.
 - Configuration file: `devanalyst.config.ts`.
 - Primary AI integration: Claude Code CLI.
@@ -82,17 +82,17 @@ Use this stack unless a documented technical limitation justifies an alternative
 
 Active package boundaries:
 
-- `@devanalyst/core`
-- `@devanalyst/vite-plugin`
-- `@devanalyst/inspector`
-- `@devanalyst/analyzer`
-- `@devanalyst/ai`
-- `@devanalyst/cache`
-- `@devanalyst/cli`
-- `@devanalyst/server`
-- `@devanalyst/next-plugin`
-- `@devanalyst/vue-plugin`
-- `@devanalyst/nuxt-module`
+- `@sonht113/core`
+- `@sonht113/vite-plugin`
+- `@sonht113/inspector`
+- `@sonht113/analyzer`
+- `@sonht113/ai`
+- `@sonht113/cache`
+- `@sonht113/cli`
+- `@sonht113/server`
+- `@sonht113/next-plugin`
+- `@sonht113/vue-plugin`
+- `@sonht113/nuxt-module`
 
 Active playgrounds are React/Vite, Next/React, Vue/Vite and Nuxt under `apps/`. See [structure](repository-structure.md) and [framework limits](frameworks.md). Unrelated historical tests remain preserved and excluded.
 

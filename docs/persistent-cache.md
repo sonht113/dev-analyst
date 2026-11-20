@@ -1,9 +1,9 @@
 # Persistent analysis cache
 
-`@devanalyst/cache` implements Phase 08 with SQLite in a worker thread. The DevAnalyst identity and React + Vite scope remain unchanged. The Vite plugin automatically persists eligible complete source analysis when `config.cache.enabled` is true, alongside Phase 07's memory cache.
+`@sonht113/cache` implements Phase 08 with SQLite in a worker thread. The DevAnalyst identity and React + Vite scope remain unchanged. The Vite plugin automatically persists eligible complete source analysis when `config.cache.enabled` is true, alongside Phase 07's memory cache.
 
 ```ts
-import { devanalyst } from '@devanalyst/vite-plugin';
+import { devanalyst } from '@sonht113/vite-plugin';
 
 const inspector = devanalyst({
   config: {
@@ -41,10 +41,10 @@ Run from an authorized React + Vite project with `src/App.tsx`:
 
 ```ts
 import { createHash } from 'node:crypto';
-import { configSchema } from '@devanalyst/core';
-import { createStaticAnalyzer } from '@devanalyst/analyzer';
-import { createWorkspaceAccess } from '@devanalyst/analyzer/workspace';
-import { openPersistentCache, cacheFingerprint } from '@devanalyst/cache';
+import { configSchema } from '@sonht113/core';
+import { createStaticAnalyzer } from '@sonht113/analyzer';
+import { createWorkspaceAccess } from '@sonht113/analyzer/workspace';
+import { openPersistentCache, cacheFingerprint } from '@sonht113/cache';
 
 const workspaceRoot = process.cwd();
 const config = configSchema.parse({});

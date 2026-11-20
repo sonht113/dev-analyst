@@ -1,8 +1,8 @@
 # Configuration, CLI and editor navigation
 
-React + Vite + TypeScript only. The project identity is DevAnalyst, configuration is `devanalyst.config.ts`, and the binary is `devanalyst`. No legacy-name binary or configuration alias is installed. Packages remain private.
+The project identity is DevAnalyst, configuration is `devanalyst.config.ts`, and the binary is `devanalyst`. The MIT beta uses `@sonht113/*`; see [release status](releasing.md). File/mode configuration is shared by the supported integrations; project CLI `dev`/`doctor` remain Vite-specific. No legacy-name binary or configuration alias is installed.
 
-Register `devanalyst()` from `@devanalyst/vite-plugin` alongside the React plugin in `vite.config.ts` once. Run the application's usual Vite dev script: browser injection, bootstrap credentials, bridge ports, worker startup and teardown are automatic. Never manually copy bridge tokens or put them in URLs.
+Register `devanalyst()` from `@sonht113/vite-plugin` alongside the React plugin in `vite.config.ts` once. Run the application's usual Vite dev script: browser injection, bootstrap credentials, bridge ports, worker startup and teardown are automatic. Never manually copy bridge tokens or put them in URLs.
 
 ## Typed configuration and environments
 
@@ -10,7 +10,7 @@ Place this file at the **Vite application root**, which may differ from the conf
 
 ```ts
 // devanalyst.config.ts
-import { defineConfig } from '@devanalyst/vite-plugin';
+import { defineConfig } from '@sonht113/vite-plugin';
 
 export default defineConfig({
   source: { include: ['src/**'], exclude: ['src/generated/**'] },
@@ -34,7 +34,7 @@ export default defineConfig({
 
 Resolution order: safe defaults → file base → `environments[Vite mode]` → inline `devanalyst({ config })`. Objects merge by section; arrays replace. Mandatory sensitive-file exclusions are always added back. Inline `bridge` settings override `config.bridge`. Explicit `preanalysis.analyzer.limits` override the depth profile. Environments use the Vite mode (`--mode testing`), not an implicit `.env`/`NODE_ENV` overlay. `NODE_ENV=production`, Vite production mode and builds disable runtime injection regardless of environment overrides. Every declared environment is validated; nested environments are invalid.
 
-The helper exported by `@devanalyst/vite-plugin` types the **file input** including environments. `defineConfig` in `@devanalyst/core` remains the browser-safe immediate schema/default validator; it does not load files or accept environments.
+The helper exported by `@sonht113/vite-plugin` types the **file input** including environments. `defineConfig` in `@sonht113/core` remains the browser-safe immediate schema/default validator; it does not load files or accept environments.
 
 Configuration is **trusted executable project code**, loaded through Vite's public TypeScript loader, just like `vite.config.ts`. Do not run CLI/configuration commands in an untrusted checkout. Application sources used for analysis remain parse-only. The entry file must be a regular non-symlink file up to 64 KiB. Missing files use defaults; syntax/import/schema errors report safe option names and recovery without printing supplied values. Imported configuration modules share the trusted-code boundary. Restart Vite after changing configuration or imported configuration helpers. Invalid plugin configuration leaves the host application usable and disables DevAnalyst; `doctor` and CLI `dev` fail with actionable errors.
 
@@ -83,7 +83,7 @@ Low-level Node integration options remain in `devanalyst({...})`: `enabled`, `pr
 
 ## Commands and diagnostics
 
-When the private CLI is installed/linked in a consumer, run `devanalyst`. In this repository after `pnpm build:packages`, use `node packages/cli/dist/bin.js` in place of the binary.
+When `@sonht113/cli` is installed/linked in a consumer, run `devanalyst`. In this repository after `pnpm build:packages`, use `node packages/cli/dist/bin.js` in place of the binary.
 
 ```sh
 devanalyst --help
@@ -119,4 +119,4 @@ Missing/disabled editors, excluded/missing files, invalid positions and source c
 
 ## Phase 11 framework integrations
 
-The same configuration contract is shared by React/Vite, Vue/Vite, Next/React and Nuxt. Import `defineConfig` from the installed integration package. Vue uses the Vite mode; Next and Nuxt select `development`. New source defaults, startup, client/server boundaries and the CLI's Vite-specific dev/doctor limits are documented in the [framework guide](frameworks.md). The shared Node implementation now lives in `@devanalyst/server`; existing Vite exports remain compatible.
+The same configuration contract is shared by React/Vite, Vue/Vite, Next/React and Nuxt. Import `defineConfig` from the installed integration package. Vue uses the Vite mode; Next and Nuxt select `development`. New source defaults, startup, client/server boundaries and the CLI's Vite-specific dev/doctor limits are documented in the [framework guide](frameworks.md). The shared Node implementation now lives in `@sonht113/server`; existing Vite exports remain compatible.

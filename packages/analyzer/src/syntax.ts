@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import type { Evidence, SourceReference, StaticCondition } from '@devanalyst/core';
+import type { Evidence, SourceReference, StaticCondition } from '@sonht113/core';
 const originalFiles = new WeakMap<ts.SourceFile, string>();
 export function registerOriginalSource(file: ts.SourceFile, path: string): void {
   originalFiles.set(file, path);

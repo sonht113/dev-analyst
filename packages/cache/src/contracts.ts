@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { configSchema, workspacePathSchema, cacheDirectorySchema } from '@devanalyst/core';
+import { configSchema, workspacePathSchema, cacheDirectorySchema } from '@sonht113/core';
 import { payloadSchema, type CachePayload } from './payload.js';
 export const digestSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const cacheIdentitySchema = z

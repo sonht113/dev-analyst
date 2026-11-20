@@ -1,5 +1,5 @@
 import process from 'node:process';
-import { startNextDevelopment } from '@devanalyst/next-plugin';
+import { startNextDevelopment } from '@sonht113/next-plugin';
 const server = await startNextDevelopment({
   root: process.cwd(),
   port: Number(process.env.PORT ?? 3000),

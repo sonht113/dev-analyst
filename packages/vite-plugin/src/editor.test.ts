@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import process from 'node:process';
 import { afterEach, describe, expect, it } from 'vitest';
-import { defineConfig } from '@devanalyst/core';
+import { defineConfig } from '@sonht113/core';
 import { openSource } from './editor.js';
 
 const roots: string[] = [];

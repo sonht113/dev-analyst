@@ -1,12 +1,7 @@
 import { invalidateSourceModule } from './mapping-runtime.js';
 import { createInspectionClient } from './inspection-client.js';
 import { startElementInspector, type ElementInspectorHandle } from './browser.js';
-import type {
-  DevAnalystConfig,
-  PageProgress,
-  RoutePayload,
-  SourceReference,
-} from '@devanalyst/core';
+import type { DevAnalystConfig, PageProgress, RoutePayload, SourceReference } from '@sonht113/core';
 import { startPagePreanalysis, type BrowserPageAnalysis } from './preanalysis-runtime.js';
 
 export interface BrowserBridgeSnapshot {

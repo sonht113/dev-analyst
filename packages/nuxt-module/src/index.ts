@@ -1,4 +1,4 @@
-import { configSchema, DevAnalystError } from '@devanalyst/core';
+import { configSchema, DevAnalystError } from '@sonht113/core';
 import console from 'node:console';
 import {
   defineNuxtModule,
@@ -16,7 +16,7 @@ import {
   loadConfiguration,
   analysisLimits,
   type DevelopmentIntegrationOptions,
-} from '@devanalyst/server';
+} from '@sonht113/server';
 
 export interface NuxtIntegrationOptions {
   readonly enabled?: boolean;
@@ -26,7 +26,7 @@ export interface NuxtIntegrationOptions {
 }
 const implementation = defineNuxtModule<NuxtIntegrationOptions>({
   meta: {
-    name: '@devanalyst/nuxt-module',
+    name: '@sonht113/nuxt-module',
     configKey: 'devanalyst',
     compatibility: { nuxt: '~4.6.4' },
   },
@@ -179,5 +179,5 @@ export default async function devanalystNuxt(options: NuxtIntegrationOptions): P
   await implementation(options, useNuxt());
 }
 
-export { defineConfig } from '@devanalyst/server';
-export type { ConfigurationFile } from '@devanalyst/server';
+export { defineConfig } from '@sonht113/server';
+export type { ConfigurationFile } from '@sonht113/server';

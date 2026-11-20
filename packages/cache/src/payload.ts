@@ -5,7 +5,7 @@ import {
   sourceReferenceSchema,
   pageElementSchema,
   type StaticAnalysisResult,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 const text = z.string().max(16384),
   name = z.string().max(1024);
 const confidence = z.enum(['VERIFIED', 'INFERRED', 'UNKNOWN']);

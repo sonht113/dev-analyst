@@ -8,30 +8,6 @@ importers:
 
   .:
     devDependencies:
-      '@devanalyst/ai':
-        specifier: workspace:*
-        version: link:packages/ai
-      '@devanalyst/analyzer':
-        specifier: workspace:*
-        version: link:packages/analyzer
-      '@devanalyst/cache':
-        specifier: workspace:*
-        version: link:packages/cache
-      '@devanalyst/core':
-        specifier: workspace:*
-        version: link:packages/core
-      '@devanalyst/next-plugin':
-        specifier: workspace:*
-        version: link:packages/next-plugin
-      '@devanalyst/server':
-        specifier: workspace:*
-        version: link:packages/server
-      '@devanalyst/vite-plugin':
-        specifier: workspace:*
-        version: link:packages/vite-plugin
-      '@devanalyst/vue-plugin':
-        specifier: workspace:*
-        version: link:packages/vue-plugin
       '@eslint/js':
         specifier: ^10.0.0
         version: 10.0.1(eslint@10.13.0(jiti@2.7.0))
@@ -41,6 +17,30 @@ importers:
       '@playwright/test':
         specifier: 1.65.0
         version: 1.65.0
+      '@sonht113/ai':
+        specifier: workspace:*
+        version: link:packages/ai
+      '@sonht113/analyzer':
+        specifier: workspace:*
+        version: link:packages/analyzer
+      '@sonht113/cache':
+        specifier: workspace:*
+        version: link:packages/cache
+      '@sonht113/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@sonht113/next-plugin':
+        specifier: workspace:*
+        version: link:packages/next-plugin
+      '@sonht113/server':
+        specifier: workspace:*
+        version: link:packages/server
+      '@sonht113/vite-plugin':
+        specifier: workspace:*
+        version: link:packages/vite-plugin
+      '@sonht113/vue-plugin':
+        specifier: workspace:*
+        version: link:packages/vue-plugin
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.5
@@ -96,7 +96,7 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
     devDependencies:
-      '@devanalyst/next-plugin':
+      '@sonht113/next-plugin':
         specifier: workspace:*
         version: link:../../packages/next-plugin
       typescript:
@@ -115,7 +115,7 @@ importers:
         specifier: ^5.4.0
         version: 5.5.1(@vue/compiler-sfc@3.5.45)(esbuild@0.28.2)(rolldown@1.2.18)(rollup@4.68.3)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2))(vue@3.5.45(typescript@6.0.3))
     devDependencies:
-      '@devanalyst/nuxt-module':
+      '@sonht113/nuxt-module':
         specifier: workspace:*
         version: link:../../packages/nuxt-module
       typescript:
@@ -134,7 +134,7 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
     devDependencies:
-      '@devanalyst/vite-plugin':
+      '@sonht113/vite-plugin':
         specifier: workspace:*
         version: link:../../packages/vite-plugin
       '@vitejs/plugin-react':
@@ -156,7 +156,7 @@ importers:
         specifier: 5.5.1
         version: 5.5.1(@vue/compiler-sfc@3.5.45)(esbuild@0.28.2)(rolldown@1.2.18)(rollup@4.68.3)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2))(vue@3.5.45(typescript@6.0.3))
     devDependencies:
-      '@devanalyst/vue-plugin':
+      '@sonht113/vue-plugin':
         specifier: workspace:*
         version: link:../../packages/vue-plugin
       '@vitejs/plugin-vue':
@@ -174,10 +174,10 @@ importers:
 
   packages/ai:
     dependencies:
-      '@devanalyst/analyzer':
+      '@sonht113/analyzer':
         specifier: workspace:*
         version: link:../analyzer
-      '@devanalyst/core':
+      '@sonht113/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -190,7 +190,7 @@ importers:
 
   packages/analyzer:
     dependencies:
-      '@devanalyst/core':
+      '@sonht113/core':
         specifier: workspace:*
         version: link:../core
       '@vue/compiler-dom':
@@ -218,10 +218,10 @@ importers:
 
   packages/cache:
     dependencies:
-      '@devanalyst/analyzer':
+      '@sonht113/analyzer':
         specifier: workspace:*
         version: link:../analyzer
-      '@devanalyst/core':
+      '@sonht113/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -234,10 +234,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@devanalyst/core':
+      '@sonht113/core':
         specifier: workspace:*
         version: link:../core
-      '@devanalyst/vite-plugin':
+      '@sonht113/vite-plugin':
         specifier: workspace:*
         version: link:../vite-plugin
       vite:
@@ -260,7 +260,7 @@ importers:
 
   packages/inspector:
     dependencies:
-      '@devanalyst/core':
+      '@sonht113/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -270,16 +270,16 @@ importers:
 
   packages/next-plugin:
     dependencies:
-      '@devanalyst/analyzer':
+      '@sonht113/analyzer':
         specifier: workspace:*
         version: link:../analyzer
-      '@devanalyst/core':
+      '@sonht113/core':
         specifier: workspace:*
         version: link:../core
-      '@devanalyst/inspector':
+      '@sonht113/inspector':
         specifier: workspace:*
         version: link:../inspector
-      '@devanalyst/server':
+      '@sonht113/server':
         specifier: workspace:*
         version: link:../server
       chokidar:
@@ -307,18 +307,18 @@ importers:
 
   packages/nuxt-module:
     dependencies:
-      '@devanalyst/core':
-        specifier: workspace:*
-        version: link:../core
-      '@devanalyst/inspector':
-        specifier: workspace:*
-        version: link:../inspector
-      '@devanalyst/server':
-        specifier: workspace:*
-        version: link:../server
       '@nuxt/kit':
         specifier: 4.6.4
         version: 4.6.4(@nuxt/schema@4.6.4)(confbox@0.3.2)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(magic-string@1.4.5)(mlly@1.8.2)(rolldown@1.2.18)(unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.18)(rollup@4.68.3)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)))
+      '@sonht113/core':
+        specifier: workspace:*
+        version: link:../core
+      '@sonht113/inspector':
+        specifier: workspace:*
+        version: link:../inspector
+      '@sonht113/server':
+        specifier: workspace:*
+        version: link:../server
       h3:
         specifier: 1.15.4
         version: 1.15.4
@@ -338,19 +338,19 @@ importers:
 
   packages/server:
     dependencies:
-      '@devanalyst/ai':
+      '@sonht113/ai':
         specifier: workspace:*
         version: link:../ai
-      '@devanalyst/analyzer':
+      '@sonht113/analyzer':
         specifier: workspace:*
         version: link:../analyzer
-      '@devanalyst/cache':
+      '@sonht113/cache':
         specifier: workspace:*
         version: link:../cache
-      '@devanalyst/core':
+      '@sonht113/core':
         specifier: workspace:*
         version: link:../core
-      '@devanalyst/inspector':
+      '@sonht113/inspector':
         specifier: workspace:*
         version: link:../inspector
       vite:
@@ -369,22 +369,22 @@ importers:
 
   packages/vite-plugin:
     dependencies:
-      '@devanalyst/ai':
+      '@sonht113/ai':
         specifier: workspace:*
         version: link:../ai
-      '@devanalyst/analyzer':
+      '@sonht113/analyzer':
         specifier: workspace:*
         version: link:../analyzer
-      '@devanalyst/cache':
+      '@sonht113/cache':
         specifier: workspace:*
         version: link:../cache
-      '@devanalyst/core':
+      '@sonht113/core':
         specifier: workspace:*
         version: link:../core
-      '@devanalyst/inspector':
+      '@sonht113/inspector':
         specifier: workspace:*
         version: link:../inspector
-      '@devanalyst/server':
+      '@sonht113/server':
         specifier: workspace:*
         version: link:../server
       ws:
@@ -403,10 +403,10 @@ importers:
 
   packages/vue-plugin:
     dependencies:
-      '@devanalyst/server':
+      '@sonht113/server':
         specifier: workspace:*
         version: link:../server
-      '@devanalyst/vite-plugin':
+      '@sonht113/vite-plugin':
         specifier: workspace:*
         version: link:../vite-plugin
       vue:

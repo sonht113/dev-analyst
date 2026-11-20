@@ -1,4 +1,4 @@
-import type { InspectorItem, InspectorUpdate, RoutePayload } from '@devanalyst/core';
+import type { InspectorItem, InspectorUpdate, RoutePayload } from '@sonht113/core';
 import type { ElementMetadata } from './metadata.js';
 export interface InspectionLane {
   readonly state: InspectorUpdate['state'];

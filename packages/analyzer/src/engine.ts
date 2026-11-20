@@ -1,6 +1,6 @@
 import { extractVueStructure } from './vue-analysis.js';
-import type { AnalysisDiagnostic, Finding, StaticAnalysisResult } from '@devanalyst/core';
-import { DevAnalystError, findingSchema } from '@devanalyst/core';
+import type { AnalysisDiagnostic, Finding, StaticAnalysisResult } from '@sonht113/core';
+import { DevAnalystError, findingSchema } from '@sonht113/core';
 import type { AnalysisRequest, StaticAnalyzer } from './index.js';
 import {
   analyzerOptionsSchema,

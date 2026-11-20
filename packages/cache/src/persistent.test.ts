@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash } from 'node:crypto';
-import { createStaticAnalyzer } from '@devanalyst/analyzer';
+import { createStaticAnalyzer } from '@sonht113/analyzer';
 import {
   openPersistentCache,
   cacheFingerprint,
@@ -12,7 +12,7 @@ import {
   type PersistentAnalysisCache,
   type CacheIdentityInput,
   type CachePayload,
-} from '@devanalyst/cache';
+} from '@sonht113/cache';
 import { payloadSchema } from './payload.js';
 
 const roots: string[] = [],

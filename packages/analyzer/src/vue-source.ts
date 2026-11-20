@@ -15,7 +15,7 @@ import type {
   SourceReference,
   StaticCondition,
   MappingSite,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 import type { InstrumentationResult, MappingDiagnostic } from './instrumentation.js';
 import type { SourceInspectionOrigin } from './source-inspection.js';
 const hash = (text: string) => createHash('sha256').update(text).digest('hex');
@@ -178,7 +178,7 @@ export function instrumentVueSource(
     diagnostics,
   });
   if (
-    runtimeUrl !== '@devanalyst/nuxt-module/vue-runtime' &&
+    runtimeUrl !== '@sonht113/nuxt-module/vue-runtime' &&
     !/^\/[\w/.-]+\/vue-runtime\.js$/.test(runtimeUrl)
   )
     throw new Error('Invalid Vue runtime URL');

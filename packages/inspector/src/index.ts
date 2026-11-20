@@ -3,7 +3,7 @@ export type { ElementInspectorHandle, ElementInspectorOptions } from './browser.
 export { extractElementMetadata } from './metadata.js';
 export type { ElementMetadata } from './metadata.js';
 
-import type { ClientEvent, DevAnalystConfig } from '@devanalyst/core';
+import type { ClientEvent, DevAnalystConfig } from '@sonht113/core';
 
 /** Reserved transport integration contract retained for compatibility; DOM inspection is local. */
 export interface InspectorOptions {

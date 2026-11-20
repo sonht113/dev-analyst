@@ -10,7 +10,7 @@ import {
   type RoutePayload,
   type StaticAnalysisResult,
   type SourceReference,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 import type { AnalysisRequest } from './index.js';
 
 const limitsSchema = z.strictObject({

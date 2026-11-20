@@ -1,5 +1,7 @@
 # DevAnalyst architecture
 
+The owner-authorized MIT beta uses the public package scope `@sonht113/*`; the product, CLI and configuration remain DevAnalyst/`devanalyst`/`devanalyst.config.ts`. Historical ADR/validation records retain the original scope. Package directories and runtime boundaries are unchanged. See [ADR 0017](adr/0017-mit-beta-publication.md).
+
 The [floating analysis switch](adr/0016-floating-analysis-toggle.md) coordinates browser inspection and tab-owned analysis through the existing bridge lifecycle. Off releases DOM observation/selection, cancels/disconnects that client's work and stops its page collector; on reboots the collector and authenticated connection for the current route. Browser lifecycle suspension remains independent of the user's enabled state.
 
 The owner-requested [element flow summary](adr/0015-element-flow-summary.md) keeps translation and selected rendering/value/event outcomes in the primary inspector view, with full evidence in collapsed details. Bounded lexical display-source findings share the existing analyzer/worker/cache contracts; handler guards remain separate from rendering guards. See [UI behavior and limits](inspector-ui.md).
@@ -8,19 +10,19 @@ Phase 11 explicitly adds Next.js + React, Vue 3 + Vite and Nuxt 4 alongside Reac
 
 ## Active package boundaries
 
-| Package                   | Responsibility                                                                                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@devanalyst/core`        | Browser-safe contracts, validation, framework IDs/capabilities, evidence and logging                                                              |
-| `@devanalyst/inspector`   | Shared native browser UI/route runtime, neutral origin registry, public Vue directive entry                                                       |
-| `@devanalyst/analyzer`    | Guarded source reads, concrete FrameworkAdapter contract, independent JSX/SFC mapping and bounded source analysis                                 |
-| `@devanalyst/server`      | Actual development host contract, authenticated bridge, mapping registry, queue, selected analysis, Claude/cache/editor/configuration composition |
-| `@devanalyst/vite-plugin` | Real Vite lifecycle/HTML/transforms/watchers and compatibility reexports                                                                          |
-| `@devanalyst/vue-plugin`  | Vue strategy selection on the Vite host                                                                                                           |
-| `@devanalyst/next-plugin` | Public Next dev server and Webpack/Turbopack loader integration, client bootstrap                                                                 |
-| `@devanalyst/nuxt-module` | Public Nuxt module/Vite/listen/page lifecycle integration                                                                                         |
-| `@devanalyst/ai`          | Opt-in enforced read-only Claude CLI and guarded original evidence context                                                                        |
-| `@devanalyst/cache`       | Worker-owned SQLite, framework/policy/hash identity, invalidation                                                                                 |
-| `@devanalyst/cli`         | Setup/doctor/status/dev/cache/analyze/open; dev/project doctor remain Vite-specific                                                               |
+| Package                 | Responsibility                                                                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@sonht113/core`        | Browser-safe contracts, validation, framework IDs/capabilities, evidence and logging                                                              |
+| `@sonht113/inspector`   | Shared native browser UI/route runtime, neutral origin registry, public Vue directive entry                                                       |
+| `@sonht113/analyzer`    | Guarded source reads, concrete FrameworkAdapter contract, independent JSX/SFC mapping and bounded source analysis                                 |
+| `@sonht113/server`      | Actual development host contract, authenticated bridge, mapping registry, queue, selected analysis, Claude/cache/editor/configuration composition |
+| `@sonht113/vite-plugin` | Real Vite lifecycle/HTML/transforms/watchers and compatibility reexports                                                                          |
+| `@sonht113/vue-plugin`  | Vue strategy selection on the Vite host                                                                                                           |
+| `@sonht113/next-plugin` | Public Next dev server and Webpack/Turbopack loader integration, client bootstrap                                                                 |
+| `@sonht113/nuxt-module` | Public Nuxt module/Vite/listen/page lifecycle integration                                                                                         |
+| `@sonht113/ai`          | Opt-in enforced read-only Claude CLI and guarded original evidence context                                                                        |
+| `@sonht113/cache`       | Worker-owned SQLite, framework/policy/hash identity, invalidation                                                                                 |
+| `@sonht113/cli`         | Setup/doctor/status/dev/cache/analyze/open; dev/project doctor remain Vite-specific                                                               |
 
 Active applications are `playground-react`, `playground-next`, `playground-vue` and `playground-nuxt`. Other historical tests remain excluded. All Node integrations supply real host middleware, bound HTTP server, source watchers and teardown through `DevelopmentHost`; no fake Vite object or private browser framework runtime is used.
 

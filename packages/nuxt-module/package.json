@@ -1,7 +1,7 @@
 {
-  "name": "@devanalyst/nuxt-module",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@sonht113/nuxt-module",
+  "version": "0.1.0-beta.1",
+  "private": false,
   "description": "DevAnalyst nuxt-module integration",
   "type": "module",
   "sideEffects": false,
@@ -36,9 +36,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@devanalyst/core": "workspace:*",
-    "@devanalyst/server": "workspace:*",
-    "@devanalyst/inspector": "workspace:*",
+    "@sonht113/core": "workspace:*",
+    "@sonht113/server": "workspace:*",
+    "@sonht113/inspector": "workspace:*",
     "@nuxt/kit": "4.6.4",
     "h3": "1.15.4"
   },
@@ -49,5 +49,20 @@
   },
   "peerDependencies": {
     "nuxt": "~4.6.4"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonht113/dev-analyst.git",
+    "directory": "packages/nuxt-module"
+  },
+  "homepage": "https://github.com/sonht113/dev-analyst#readme",
+  "bugs": {
+    "url": "https://github.com/sonht113/dev-analyst/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "beta"
   }
 }

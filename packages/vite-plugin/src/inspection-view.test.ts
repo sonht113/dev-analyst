@@ -2,8 +2,8 @@ import { afterEach, expect, it } from 'vitest';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createStaticAnalyzer, instrumentReactSource } from '@devanalyst/analyzer';
-import { inspectorItemSchema } from '@devanalyst/core';
+import { createStaticAnalyzer, instrumentReactSource } from '@sonht113/analyzer';
+import { inspectorItemSchema } from '@sonht113/core';
 import { selectInspection } from './inspection-view.js';
 
 const roots: string[] = [];

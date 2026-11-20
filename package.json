@@ -35,10 +35,10 @@
     "dev:nuxt": "pnpm build:packages && pnpm --filter playground-nuxt dev"
   },
   "devDependencies": {
-    "@devanalyst/ai": "workspace:*",
-    "@devanalyst/analyzer": "workspace:*",
-    "@devanalyst/core": "workspace:*",
-    "@devanalyst/vite-plugin": "workspace:*",
+    "@sonht113/ai": "workspace:*",
+    "@sonht113/analyzer": "workspace:*",
+    "@sonht113/core": "workspace:*",
+    "@sonht113/vite-plugin": "workspace:*",
     "@eslint/js": "^10.0.0",
     "@jridgewell/trace-mapping": "0.3.31",
     "@playwright/test": "1.65.0",
@@ -55,10 +55,11 @@
     "vite": "8.3.5",
     "vitest": "5.0.5",
     "ws": "8.22.2",
-    "@devanalyst/cache": "workspace:*",
-    "@devanalyst/next-plugin": "workspace:*",
-    "@devanalyst/vue-plugin": "workspace:*",
-    "@devanalyst/server": "workspace:*",
+    "@sonht113/cache": "workspace:*",
+    "@sonht113/next-plugin": "workspace:*",
+    "@sonht113/vue-plugin": "workspace:*",
+    "@sonht113/server": "workspace:*",
     "@vitejs/plugin-vue": "6.0.11"
-  }
+  },
+  "license": "MIT"
 }

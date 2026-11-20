@@ -1,4 +1,4 @@
-import type { PageElement, PageItemStatus, PageProgress, RoutePayload } from '@devanalyst/core';
+import type { PageElement, PageItemStatus, PageProgress, RoutePayload } from '@sonht113/core';
 import { resolveElementSource } from './mapping-runtime.js';
 
 export interface BrowserPageAnalysis {

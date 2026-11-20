@@ -2,7 +2,7 @@ import { parseVueSource } from './vue-source.js';
 import ts from 'typescript';
 import { posix, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
-import { DevAnalystError, type AnalysisDiagnostic, type SourceReference } from '@devanalyst/core';
+import { DevAnalystError, type AnalysisDiagnostic, type SourceReference } from '@sonht113/core';
 import { createWorkspaceAccess } from './workspace.js';
 import type { AnalysisBudget } from './analysis-options.js';
 import { AnalysisStop, type ResolvedAnalyzerOptions } from './analysis-options.js';

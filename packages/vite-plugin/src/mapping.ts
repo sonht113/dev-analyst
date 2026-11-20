@@ -1,1 +1,1 @@
-export * from '@devanalyst/server/mapping';
+export * from '@sonht113/server/mapping';

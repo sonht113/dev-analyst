@@ -8,15 +8,15 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import console from 'node:console';
 import { watch } from 'chokidar';
-import { createWorkspaceAccess } from '@devanalyst/analyzer';
-import { DevAnalystError, configSchema } from '@devanalyst/core';
+import { createWorkspaceAccess } from '@sonht113/analyzer';
+import { DevAnalystError, configSchema } from '@sonht113/core';
 import {
   createDevelopmentIntegration,
   loadConfiguration,
   analysisLimits,
   startCompilerService,
   type DevelopmentIntegrationOptions,
-} from '@devanalyst/server';
+} from '@sonht113/server';
 
 /** Narrow public custom-server/loader contracts avoid exposing Next's private implementation types. */
 interface NextApp {
@@ -82,7 +82,7 @@ export function withDevAnalyst<T extends object>(
     const socket = process.env[socketVariable],
       workspaceRoot = process.env[rootVariable];
     if (phase !== 'phase-development-server' || !socket || !workspaceRoot) return config;
-    const loader = fileURLToPath(import.meta.resolve('@devanalyst/next-plugin/loader'));
+    const loader = fileURLToPath(import.meta.resolve('@sonht113/next-plugin/loader'));
     const options = { socket, workspaceRoot };
     const turbo = 'turbopack' in config && record(config.turbopack) ? config.turbopack : {};
     const rules: Record<string, LoaderRule> = {
@@ -317,5 +317,5 @@ export async function startNextDevelopment(
   }
 }
 
-export { defineConfig } from '@devanalyst/server';
-export type { ConfigurationFile } from '@devanalyst/server';
+export { defineConfig } from '@sonht113/server';
+export type { ConfigurationFile } from '@sonht113/server';

@@ -3,9 +3,9 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { expect, it } from 'vitest';
-import { createWorkerAnalyzer } from '@devanalyst/analyzer';
-import { createClaudeCodeProvider } from '@devanalyst/ai';
-import { cacheFingerprint, openPersistentCache, type CacheIdentityInput } from '@devanalyst/cache';
+import { createWorkerAnalyzer } from '@sonht113/analyzer';
+import { createClaudeCodeProvider } from '@sonht113/ai';
+import { cacheFingerprint, openPersistentCache, type CacheIdentityInput } from '@sonht113/cache';
 import { claudeFixture } from '../helpers/claude-fixture.js';
 it('reuses enforced Claude and SQLite contracts for real Vue evidence with original SFC hashes and adapter isolation', async () => {
   const root = await mkdtemp(join(tmpdir(), 'devanalyst-vue-ai-')),

@@ -1,7 +1,7 @@
 {
-  "name": "@devanalyst/analyzer",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@sonht113/analyzer",
+  "version": "0.1.0-beta.1",
+  "private": false,
   "description": "DevAnalyst analyzer package",
   "type": "module",
   "sideEffects": false,
@@ -36,7 +36,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@devanalyst/core": "workspace:*",
+    "@sonht113/core": "workspace:*",
     "magic-string": "1.4.5",
     "picomatch": "4.0.7",
     "typescript": "6.0.3",
@@ -46,5 +46,20 @@
   },
   "devDependencies": {
     "@types/picomatch": "^4.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonht113/dev-analyst.git",
+    "directory": "packages/analyzer"
+  },
+  "homepage": "https://github.com/sonht113/dev-analyst#readme",
+  "bugs": {
+    "url": "https://github.com/sonht113/dev-analyst/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "beta"
   }
 }

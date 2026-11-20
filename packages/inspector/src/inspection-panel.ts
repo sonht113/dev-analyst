@@ -1,4 +1,4 @@
-import type { InspectorItem, SourceReference } from '@devanalyst/core';
+import type { InspectorItem, SourceReference } from '@sonht113/core';
 import type { ElementMetadata } from './metadata.js';
 import type { InspectionSnapshot, InspectionLane } from './inspection-client.js';
 import { glossaryTranslation } from './glossary.js';

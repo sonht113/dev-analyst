@@ -1,6 +1,6 @@
 import { Worker } from 'node:worker_threads';
 import { z } from 'zod';
-import { DevAnalystError, errorCodeSchema } from '@devanalyst/core';
+import { DevAnalystError, errorCodeSchema } from '@sonht113/core';
 import {
   cacheOptionsSchema,
   cacheIdentitySchema,

@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
-import { devanalyst, type DevAnalystPlugin } from '@devanalyst/vite-plugin';
+import { devanalyst, type DevAnalystPlugin } from '@sonht113/vite-plugin';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import type { BrowserBridgeSnapshot } from '../../packages/inspector/src/bridge-runtime.js';
-import { clientEventSchema } from '@devanalyst/core';
+import { clientEventSchema } from '@sonht113/core';
 
 let root: string;
 let server: ViteDevServer;

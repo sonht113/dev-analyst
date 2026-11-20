@@ -8,7 +8,7 @@ import type {
   StaticCondition,
   Evidence,
   AnalysisConfidence,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 import type { SemanticModel } from './semantic.js';
 import type { TraceRoot } from './extract.js';
 import { parseVueSource } from './vue-source.js';

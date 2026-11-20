@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { DevAnalystConfig, Finding, SerializedError } from '@devanalyst/core';
+import type { DevAnalystConfig, Finding, SerializedError } from '@sonht113/core';
 
 export interface ExplanationRequest {
   readonly requestId: string;

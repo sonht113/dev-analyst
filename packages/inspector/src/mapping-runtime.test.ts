@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMappingRegistry } from './mapping-runtime.js';
-import type { SourceModuleManifest } from '@devanalyst/core';
+import type { SourceModuleManifest } from '@sonht113/core';
 const fixture = (revision = 'b'.repeat(64)): SourceModuleManifest => ({
   version: 1,
   moduleId: 'a'.repeat(64),

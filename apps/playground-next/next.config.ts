@@ -1,5 +1,5 @@
 import type { NextConfig } from 'next';
-import { withDevAnalyst } from '@devanalyst/next-plugin';
+import { withDevAnalyst } from '@sonht113/next-plugin';
 
 const config: NextConfig = {
   reactStrictMode: true,

@@ -10,7 +10,7 @@ import ts from 'typescript';
 /** @typedef {{directory: string, manifest: Manifest}} Workspace */
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const browserPackages = new Set(['@devanalyst/core', '@devanalyst/inspector']);
+const browserPackages = new Set(['@sonht113/core', '@sonht113/inspector']);
 const builtins = new Set(builtinModules.map((name) => name.replace(/^node:/, '')));
 
 /** @param {string} root @returns {Promise<Workspace[]>} */
@@ -147,7 +147,7 @@ export async function checkBoundaries(root = repositoryRoot) {
       if (byName.has(name) && !version.startsWith('workspace:')) {
         errors.push(`${manifest.name}: internal dependency ${name} must use workspace:`);
       }
-      if (name.startsWith('@devanalyst/') && !byName.has(name)) {
+      if (name.startsWith('@sonht113/') && !byName.has(name)) {
         errors.push(`${manifest.name}: unknown workspace dependency ${name}`);
       }
       if (browserPackages.has(manifest.name) && byName.has(name) && !browserPackages.has(name)) {

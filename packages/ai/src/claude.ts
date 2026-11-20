@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { DevAnalystError, findingSchema } from '@devanalyst/core';
+import { DevAnalystError, findingSchema } from '@sonht113/core';
 import type {
   ClaudeCodeProvider,
   ClaudeReadiness,

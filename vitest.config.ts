@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 export default defineConfig({
   resolve: {
     alias: {
-      '@devanalyst/core': fileURLToPath(new URL('./packages/core/src/index.ts', import.meta.url)),
+      '@sonht113/core': fileURLToPath(new URL('./packages/core/src/index.ts', import.meta.url)),
     },
   },
   test: {

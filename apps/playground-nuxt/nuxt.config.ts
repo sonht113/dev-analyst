@@ -1,7 +1,7 @@
 import { defineNuxtConfig } from 'nuxt/config';
 
 export default defineNuxtConfig({
-  modules: ['@devanalyst/nuxt-module'],
+  modules: ['@sonht113/nuxt-module'],
   compatibilityDate: '2026-11-12',
   devtools: { enabled: false },
   telemetry: false,

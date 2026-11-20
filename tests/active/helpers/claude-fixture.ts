@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readFile, writeFile, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
-import type { Finding } from '@devanalyst/core';
+import type { Finding } from '@sonht113/core';
 export async function claudeFixture(scenario: Readonly<Record<string, unknown>> = {}) {
   const root = await mkdtemp(join(tmpdir(), 'devanalyst-ai-test-'));
   const file = 'src/App.tsx';

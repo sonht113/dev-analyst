@@ -5,18 +5,18 @@ import {
   type CacheInspection,
   type CacheIdentity,
   type CachePayload,
-} from '@devanalyst/cache';
+} from '@sonht113/cache';
 import {
   DevAnalystError,
   type DevAnalystConfig,
   type PageElement,
   type StaticAnalysisResult,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 import type {
   PageAnalysisSnapshot,
   PageOrchestratorOptions,
   StaticAnalyzerOptions,
-} from '@devanalyst/analyzer';
+} from '@sonht113/analyzer';
 
 /** Node-only composition: persisted context contains fingerprints and source facts, never browser text/values. */
 export function createViteAnalysisCache(options: {

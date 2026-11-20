@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile, rm, access, symlink } from 'node:fs/promises
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { createStaticAnalyzer, type StaticAnalyzerOptions } from './index.js';
-import { findingSchema, type StaticAnalysisResult } from '@devanalyst/core';
+import { findingSchema, type StaticAnalysisResult } from '@sonht113/core';
 const cleanup: string[] = [];
 afterEach(async () => {
   for (const root of cleanup.splice(0)) await rm(root, { recursive: true, force: true });

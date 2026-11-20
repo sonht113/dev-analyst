@@ -16,7 +16,7 @@ import {
   type ServerEvent,
   type BridgeBootstrap,
   type SerializedError,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 
 export interface BridgeClient {
   readonly id: string;

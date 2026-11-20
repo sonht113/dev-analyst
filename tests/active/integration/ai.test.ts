@@ -1,8 +1,8 @@
 import { afterEach, expect, it } from 'vitest';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createStaticAnalyzer } from '@devanalyst/analyzer';
-import { createClaudeCodeProvider } from '@devanalyst/ai';
+import { createStaticAnalyzer } from '@sonht113/analyzer';
+import { createClaudeCodeProvider } from '@sonht113/ai';
 import { claudeFixture } from '../helpers/claude-fixture.js';
 const cleanup: string[] = [];
 afterEach(async () => {

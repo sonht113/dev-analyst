@@ -1,1 +1,1 @@
-export * from '@devanalyst/server/workspace';
+export * from '@sonht113/server/workspace';

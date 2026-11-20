@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { valueBindings } from './value-source.js';
-import type { AnalysisConfidence, SourceReference } from '@devanalyst/core';
+import type { AnalysisConfidence, SourceReference } from '@sonht113/core';
 import type { SemanticModel } from './semantic.js';
 import { conditionsOf, isFunction, literal, property, sourceOf, textOf, unwrap } from './syntax.js';
 export interface TraceRoot {

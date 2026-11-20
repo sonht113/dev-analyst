@@ -1,4 +1,4 @@
-import { DevAnalystError } from '@devanalyst/core';
+import { DevAnalystError } from '@sonht113/core';
 import {
   loadConfiguration,
   inspectClaude,
@@ -6,8 +6,8 @@ import {
   analyzeSource,
   openSource,
   type DevAnalystPluginApi,
-} from '@devanalyst/vite-plugin';
-import { writeFile } from 'node:fs/promises';
+} from '@sonht113/vite-plugin';
+import { readFile, writeFile } from 'node:fs/promises';
 import process from 'node:process';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -42,7 +42,7 @@ Usage: devanalyst [--help | --version]
   analyze <workspace-relative-file> [root] [--mode MODE]
   open <workspace-relative-file> [root] [--line N] [--column N] [--mode MODE]
 
-Register devanalyst() from @devanalyst/vite-plugin in Vite plugins once.
+Register devanalyst() from @sonht113/vite-plugin in Vite plugins once.
 The development bridge starts automatically. Configuration: devanalyst.config.ts.
 setup creates a safe configuration without overwriting existing files or enabling AI.
 Stop Vite before offline cache administration; restart it after clearing.
@@ -82,7 +82,7 @@ export async function startDevelopmentServer(
     if (!server.config.plugins.some((plugin) => plugin.name === 'devanalyst')) {
       throw new DevAnalystError(
         'INVALID_CONFIG',
-        'Add devanalyst() from @devanalyst/vite-plugin to Vite plugins before running devanalyst dev.',
+        'Add devanalyst() from @sonht113/vite-plugin to Vite plugins before running devanalyst dev.',
       );
     }
     await server.listen();
@@ -100,7 +100,18 @@ export async function runCli(args: readonly string[], output: CliOutput): Promis
     return 0;
   }
   if (args.length === 1 && ['--version', '-v'].includes(args[0] ?? '')) {
-    output.stdout('0.1.0\n');
+    const metadata: unknown = JSON.parse(
+      await readFile(new URL('../package.json', import.meta.url), 'utf8'),
+    );
+    if (
+      typeof metadata !== 'object' ||
+      metadata === null ||
+      !('version' in metadata) ||
+      typeof metadata.version !== 'string' ||
+      !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(metadata.version)
+    )
+      throw new DevAnalystError('INVALID_CONFIG', 'DevAnalyst package version is invalid.');
+    output.stdout(`${metadata.version}\n`);
     return 0;
   }
   if (['dev', 'doctor', 'setup', 'status', 'cache', 'analyze', 'open'].includes(args[0] ?? '')) {
@@ -160,7 +171,7 @@ export async function runCli(args: readonly string[], output: CliOutput): Promis
         try {
           await writeFile(
             resolve(root, 'devanalyst.config.ts'),
-            "import { defineConfig } from '@devanalyst/vite-plugin';\n\nexport default defineConfig({\n  source: { include: ['src/**'] },\n  ai: { enabled: false },\n});\n",
+            "import { defineConfig } from '@sonht113/vite-plugin';\n\nexport default defineConfig({\n  source: { include: ['src/**'] },\n  ai: { enabled: false },\n});\n",
             { flag: 'wx', mode: 0o600 },
           );
         } catch {
@@ -193,7 +204,7 @@ export async function runCli(args: readonly string[], output: CliOutput): Promis
         const claude = diagnostics?.claude ?? (await inspectClaude(root, mode));
         const aiEnabled = diagnostics?.aiEnabled ?? settings.ai.enabled;
         output.stdout(
-          `${JSON.stringify({ viteVersion, nodeVersion: process.versions.node, pluginConfigured: configured, configurationValid: true, aiEnabled, bridgeStarted: false, aiStarted: false, claude, recovery: configured ? 'Run your Vite dev command, then devanalyst status --url <Vite URL>. Claude compatibility/authentication is separate from live inference readiness.' : 'Add devanalyst() from @devanalyst/vite-plugin to Vite plugins.' })}\n`,
+          `${JSON.stringify({ viteVersion, nodeVersion: process.versions.node, pluginConfigured: configured, configurationValid: true, aiEnabled, bridgeStarted: false, aiStarted: false, claude, recovery: configured ? 'Run your Vite dev command, then devanalyst status --url <Vite URL>. Claude compatibility/authentication is separate from live inference readiness.' : 'Add devanalyst() from @sonht113/vite-plugin to Vite plugins.' })}\n`,
         );
         return configured && (!aiEnabled || (claude.compatible && claude.authenticated === true))
           ? 0

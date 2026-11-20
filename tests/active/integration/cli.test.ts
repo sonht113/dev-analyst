@@ -5,10 +5,10 @@ import { resolve, join } from 'node:path';
 import process from 'node:process';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHash, randomUUID } from 'node:crypto';
-import { openPersistentCache, cacheFingerprint, type CacheIdentityInput } from '@devanalyst/cache';
-import { defineConfig } from '@devanalyst/core';
+import { openPersistentCache, cacheFingerprint, type CacheIdentityInput } from '@sonht113/cache';
+import { defineConfig } from '@sonht113/core';
 import { claudeFixture } from '../helpers/claude-fixture.js';
-import { bridgeBootstrapSchema } from '@devanalyst/core';
+import { bridgeBootstrapSchema } from '@sonht113/core';
 
 const cleanup: (() => Promise<unknown>)[] = [];
 afterEach(async () => {
@@ -43,7 +43,7 @@ async function fixture(configured = true): Promise<{ root: string; port: number 
   await writeFile(
     join(root, 'vite.config.mjs'),
     configured
-      ? 'import {devanalyst} from "@devanalyst/vite-plugin"; export default {plugins:[devanalyst()]};'
+      ? 'import {devanalyst} from "@sonht113/vite-plugin"; export default {plugins:[devanalyst()]};'
       : 'export default {};',
   );
   return { root, port };
@@ -236,7 +236,7 @@ describe('actual CLI and consumer npm dev startup', () => {
     cleanup.push(() => rm(cli.root, { recursive: true, force: true }));
     await writeFile(
       join(root, 'vite.config.mjs'),
-      `import {devanalyst} from '@devanalyst/vite-plugin'; export default {plugins:[devanalyst({config:{ai:{enabled:true,permittedPaths:['src/**']}},preanalysis:{claude:{executable:${JSON.stringify(cli.executable)}}}})]};`,
+      `import {devanalyst} from '@sonht113/vite-plugin'; export default {plugins:[devanalyst({config:{ai:{enabled:true,permittedPaths:['src/**']}},preanalysis:{claude:{executable:${JSON.stringify(cli.executable)}}}})]};`,
     );
     const doctor = launch(
       process.execPath,

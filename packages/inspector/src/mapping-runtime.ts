@@ -3,7 +3,7 @@ import type {
   MappingSite,
   SourceModuleManifest,
   SourceReference,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 
 type MappingElement = Pick<Element, 'nodeType' | 'localName' | 'isConnected'>;
 interface ModuleRecord {

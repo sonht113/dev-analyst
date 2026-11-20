@@ -1,5 +1,5 @@
 import './demo.css';
-import { DevAnalystClient } from '@devanalyst/next-plugin/client';
+import { DevAnalystClient } from '@sonht113/next-plugin/client';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 

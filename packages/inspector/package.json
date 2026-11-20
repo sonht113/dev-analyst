@@ -1,7 +1,7 @@
 {
-  "name": "@devanalyst/inspector",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@sonht113/inspector",
+  "version": "0.1.0-beta.1",
+  "private": false,
   "description": "DevAnalyst inspector package",
   "type": "module",
   "sideEffects": false,
@@ -81,9 +81,24 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@devanalyst/core": "workspace:*"
+    "@sonht113/core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "6.0.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonht113/dev-analyst.git",
+    "directory": "packages/inspector"
+  },
+  "homepage": "https://github.com/sonht113/dev-analyst#readme",
+  "bugs": {
+    "url": "https://github.com/sonht113/dev-analyst/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "beta"
   }
 }

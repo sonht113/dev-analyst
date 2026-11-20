@@ -1,5 +1,13 @@
 # DevAnalyst progress
 
+## Owner-authorized MIT beta preparation
+
+The owner authorized publication of a public beta, selected MIT, and chose `@sonht113/*` after the original organization was unavailable. Eleven package manifests are prepared at `0.1.0-beta.1`, with public/beta npm metadata, repository links, package READMEs and the root MIT license. The root/playgrounds remain private. npm authenticated `sonht113`, confirming the personal scope owner. Current imports, manifests, tooling filters and setup documentation use this scope; the DevAnalyst product/CLI/configuration identity stays intact. Historical validation/ADR records retain their original scope. Registry publication is not claimed until verified. See [the release procedure](releasing.md) and [ADR 0017](adr/0017-mit-beta-publication.md).
+
+CLI version output now reads installed package metadata instead of a fixed foundation version. Archive checks also validate README/license inclusion, exported targets, rewritten workspace dependencies and exclusion of local configuration/cache artifacts.
+
+Pre-publication validation for `@sonht113/*`: all eleven independent builds, `pnpm check` (361 tests), 60 E2E tests and an isolated archive consumer passed. The consumer verified eleven public imports, private-path rejection, CLI beta version, real React/Vite runtime serving with zero errors and production exclusion. See the release procedure for registry publication status.
+
 ## Vite mapping runtime loading follow-up
 
 Reproduced Vite's `Pre-transform error: Failed to load url /__devanalyst/mapping-runtime.js` at both `/` and `/app/`. The middleware served the runtime correctly, but Vite's import warmup bypassed middleware and tried loading the URL as a file. Client-only `resolveId`/`load` now supply the actual public mapping/Vue runtime exports at the existing URLs, including Vue's relative import. Regression tests capture Vite errors and verify real warmed modules plus HTTP responses; existing endpoint access checks remain in place.

@@ -1,12 +1,12 @@
-import { createStaticAnalyzer } from '@devanalyst/analyzer';
+import { createStaticAnalyzer } from '@sonht113/analyzer';
 import { expect, test, type Page } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
-import { devanalyst, type DevAnalystPlugin } from '@devanalyst/vite-plugin';
+import { devanalyst, type DevAnalystPlugin } from '@sonht113/vite-plugin';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import type { ElementSourceMapping } from '@devanalyst/core';
+import type { ElementSourceMapping } from '@sonht113/core';
 let root: string, server: ViteDevServer, plugin: DevAnalystPlugin, url: string;
 const sourceFiles = new Map<string, string>();
 const lastSourceSave = new Map<string, number>();

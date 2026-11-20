@@ -1,6 +1,6 @@
 import { parentPort } from 'node:worker_threads';
 import { z } from 'zod';
-import { DevAnalystError } from '@devanalyst/core';
+import { DevAnalystError } from '@sonht113/core';
 import { commandSchema } from './contracts.js';
 import { openDatabase } from './database.js';
 const requestSchema = z.strictObject({ id: z.number().int().positive(), command: z.unknown() });

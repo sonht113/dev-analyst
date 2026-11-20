@@ -3,8 +3,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { constants, lstatSync } from 'node:fs';
 import { lstat, mkdir, realpath, open, chmod } from 'node:fs/promises';
 import { resolve, join, sep } from 'node:path';
-import { createWorkspaceAccess } from '@devanalyst/analyzer/workspace';
-import { DevAnalystError } from '@devanalyst/core';
+import { createWorkspaceAccess } from '@sonht113/analyzer/workspace';
+import { DevAnalystError } from '@sonht113/core';
 import { z } from 'zod';
 import {
   cacheOptionsSchema,

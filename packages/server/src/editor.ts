@@ -7,7 +7,7 @@ import {
   configSchema,
   sourceReferenceSchema,
   type DevAnalystConfig,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 import { createWorkspaceAccess } from './workspace.js';
 
 /** Fixed executable, no shell/URI handlers. The local CLI/editor remains a trusted boundary. */

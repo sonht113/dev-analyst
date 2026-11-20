@@ -1,5 +1,5 @@
 import { Worker } from 'node:worker_threads';
-import { DevAnalystError, type StaticAnalysisResult } from '@devanalyst/core';
+import { DevAnalystError, type StaticAnalysisResult } from '@sonht113/core';
 import type { AnalysisRequest } from './index.js';
 import {
   analyzerOptionsSchema,

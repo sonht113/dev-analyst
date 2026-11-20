@@ -1,1 +1,1 @@
-export * from '@devanalyst/server/inspection-view';
+export * from '@sonht113/server/inspection-view';

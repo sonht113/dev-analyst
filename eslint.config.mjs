@@ -38,7 +38,7 @@ export default tseslint.config(
         'error',
         {
           paths: nodeImports,
-          patterns: ['node:*', '@devanalyst/*-plugin', '@devanalyst/{ai,analyzer,cache,cli}'],
+          patterns: ['node:*', '@sonht113/*-plugin', '@sonht113/{ai,analyzer,cache,cli}'],
         },
       ],
     },

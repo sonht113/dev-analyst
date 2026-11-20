@@ -6,7 +6,7 @@ import {
   DevAnalystError,
   type DevAnalystConfig,
   type DevAnalystConfigInput,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 
 /** Trusted executable project configuration, like vite.config.ts. Arrays replace; sections merge. */
 export type ConfigurationFile = DevAnalystConfigInput & {

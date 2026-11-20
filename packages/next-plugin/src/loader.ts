@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { relative, isAbsolute } from 'node:path';
-import { requestCompiler } from '@devanalyst/server/compiler';
+import { requestCompiler } from '@sonht113/server/compiler';
 interface LoaderContext {
   readonly resourcePath: string;
   getOptions(): unknown;
@@ -35,7 +35,7 @@ export default function loader(this: LoaderContext, code: string, inputMap?: obj
       // Bundle the browser-safe public runtime; an absolute HTTP module specifier is not a Next module.
       const output = result.code.replaceAll(
         '"/__devanalyst/mapping-runtime.js"',
-        '"@devanalyst/next-plugin/mapping-runtime"',
+        '"@sonht113/next-plugin/mapping-runtime"',
       );
       done(null, output, result.map ?? inputMap);
     },

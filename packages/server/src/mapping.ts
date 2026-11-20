@@ -1,10 +1,10 @@
-import type { FrameworkId, PageElement, SourceModuleManifest } from '@devanalyst/core';
+import type { FrameworkId, PageElement, SourceModuleManifest } from '@sonht113/core';
 import { performance } from 'node:perf_hooks';
 import {
   createFrameworkAdapter,
   type MappingDiagnostic,
   type SourceInspectionOrigin,
-} from '@devanalyst/analyzer';
+} from '@sonht113/analyzer';
 import type { WorkspaceAccess } from './workspace.js';
 
 export interface SourceMappingDiagnostic {

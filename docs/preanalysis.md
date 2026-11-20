@@ -5,7 +5,7 @@ React + Vite development pages automatically begin deterministic background anal
 ```ts
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-import { devanalyst } from '@devanalyst/vite-plugin';
+import { devanalyst } from '@sonht113/vite-plugin';
 
 const inspector = devanalyst({
   config: { source: { include: ['src/**'] } },

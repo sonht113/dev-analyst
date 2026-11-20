@@ -7,8 +7,8 @@ import {
   createPageOrchestrator,
   createWorkerAnalyzer,
   createWorkspaceAccess,
-} from '@devanalyst/analyzer';
-import { configSchema } from '@devanalyst/core';
+} from '@sonht113/analyzer';
+import { configSchema } from '@sonht113/core';
 const roots: string[] = [];
 const stops: (() => void | Promise<void>)[] = [];
 afterEach(async () => {

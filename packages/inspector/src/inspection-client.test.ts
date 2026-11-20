@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { inspectorItemSchema, inspectorUpdateSchema, type InspectorUpdate } from '@devanalyst/core';
+import { inspectorItemSchema, inspectorUpdateSchema, type InspectorUpdate } from '@sonht113/core';
 import { createInspectionClient, isInspectorUpdate } from './inspection-client.js';
 import { glossaryTranslation } from './glossary.js';
 import type { ElementMetadata } from './metadata.js';

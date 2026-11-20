@@ -55,21 +55,21 @@ describe('workspace dependency boundaries', () => {
       await mkdir(join(root, 'packages/inspector/src'), { recursive: true });
       await writeFile(
         join(root, 'packages/core/package.json'),
-        JSON.stringify({ name: '@devanalyst/core' }),
+        JSON.stringify({ name: '@sonht113/core' }),
       );
       await writeFile(join(root, 'packages/core/src/index.ts'), 'export {};');
       await writeFile(
         join(root, 'packages/inspector/package.json'),
         JSON.stringify({
-          name: '@devanalyst/inspector',
-          dependencies: { '@devanalyst/core': 'workspace:*' },
+          name: '@sonht113/inspector',
+          dependencies: { '@sonht113/core': 'workspace:*' },
         }),
       );
       await writeFile(
         join(root, 'packages/inspector/src/index.ts'),
         `
         import 'node:fs';
-        export * from '@devanalyst/core/private';
+        export * from '@sonht113/core/private';
         import 'undeclared';
         import '../../core/src/index.js';
       `,

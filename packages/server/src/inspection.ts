@@ -1,13 +1,13 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
-import { createClaudeCodeProvider, type ClaudeCodeOptions } from '@devanalyst/ai';
+import { createClaudeCodeProvider, type ClaudeCodeOptions } from '@sonht113/ai';
 import {
   createPageOrchestrator,
   createWorkerAnalyzer,
   type StaticAnalyzerOptions,
-} from '@devanalyst/analyzer';
-import type { WorkspaceAccess } from '@devanalyst/analyzer/workspace';
-import { cacheFingerprint, isSafeCacheContent, type CacheIdentityInput } from '@devanalyst/cache';
+} from '@sonht113/analyzer';
+import type { WorkspaceAccess } from '@sonht113/analyzer/workspace';
+import { cacheFingerprint, isSafeCacheContent, type CacheIdentityInput } from '@sonht113/cache';
 import {
   DevAnalystError,
   type ClientEvent,
@@ -15,11 +15,11 @@ import {
   type InspectorItem,
   type InspectorUpdate,
   type Finding,
-} from '@devanalyst/core';
+} from '@sonht113/core';
 import type { createSourceMapping } from './mapping.js';
 import type { createViteAnalysisCache } from './cache.js';
 import { selectInspection } from './inspection-view.js';
-import { glossaryTranslation } from '@devanalyst/inspector/glossary';
+import { glossaryTranslation } from '@sonht113/inspector/glossary';
 type Request = Extract<ClientEvent, { type: 'inspector.request' }>['payload'];
 interface Session {
   request: Request;
